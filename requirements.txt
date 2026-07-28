@@ -1,0 +1,7 @@
+langgraph
+langchain
+langchain-core
+langchain-google-genai
+sqlalchemy
+psycopg2-binary
+python-dotenv
