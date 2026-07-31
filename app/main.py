@@ -13,27 +13,9 @@ from app.logging.trace_logger import (
 
 def chat():
 
-    print(
-        "=============================="
-    )
-
-    print(
-        "SHOP CUSTOMER SERVICE CHATBOT"
-    )
-
-    print(
-        "Powered by Gemini + LangGraph"
-    )
-
-    print(
-        "Nhập 'exit' để thoát."
-    )
-
-    print(
-        "=============================="
-    )
-
-    messages = []
+    THREAD_ID = input("Conversation ID: ")
+    print("SHOP CUSTOMER SERVICE CHATBOT")
+    print("Nhập 'exit' để thoát.")
 
     while True:
         user_input = input(
@@ -46,21 +28,19 @@ def chat():
             )
             break
 
-        previous_message_count = len(
-            messages
-        )
         user_message = HumanMessage(
             content=user_input
         )
 
-        messages.append(
-            user_message
-        )
-
-#chạy langgraph
+# chạy langgraph và lấy state cuối
         result = graph.invoke(
             {
-                "messages": messages
+                "messages": [user_message]
+            },
+            config={
+                 "configurable": {
+                      "thread_id": THREAD_ID
+                    }
             }
         )
 
@@ -68,12 +48,16 @@ def chat():
             "messages"
         ]
 
-        #lấy các message mới từ lần gọi trước
-        new_messages = messages[
-            previous_message_count:
-        ]
+        # xác định các message trong turn hiện tại
+        current_turn_start = len(messages) - 1
+        for index in range(len(messages) - 1,-1,-1,):
+            if isinstance(messages[index],HumanMessage,):
+                current_turn_start = index
+                break
 
-        final_message = messages[-1]
+        current_messages = messages[current_turn_start:]
+
+        final_message = current_messages[-1]
 
         content = final_message.content
 
@@ -89,51 +73,53 @@ def chat():
         else:
                 final_answer = str(content)
 
-#lấy tool calls
+# lấy tool calls
         tool_calls = []
-        for message in new_messages:
-            # Gemini gọi tool
+
+        tool_results = {}
+        for message in current_messages:
             if isinstance(
-                message,
-                AIMessage,
-            ):
-                if message.tool_calls:
-                    for tool_call in (
-                        message.tool_calls
-                    ):
-                        tool_calls.append(
-                            {
-                                "tool_name":
-                                    tool_call[
-                                        "name"
-                                    ],
-
-                                "arguments":
-                                    tool_call[
-                                        "args"
-                                    ],
-
-                                "tool_call_id":
-                                    tool_call[
-                                        "id"
-                                    ],
-                            }
-                        )
-            # Tool trả kết quả
-            elif isinstance(
                 message,
                 ToolMessage,
             ):
-                for tool_call in tool_calls:
-                    if (
-                        tool_call[
-                            "tool_call_id"
-                        ]
-                        == message.tool_call_id
-                    ):
-                        tool_call[
+                tool_results[
+                    message.tool_call_id
+                ] = message.content
+
+        for message in current_messages:
+            if isinstance(message,AIMessage,) and message.tool_calls:
+                for tool_call in (
+                    message.tool_calls
+                ):
+                    tool_call_record = {
+                        "tool_name":
+                            tool_call[
+                                "name"
+                            ],
+
+                        "arguments":
+                            tool_call[
+                                "args"
+                            ],
+
+                        "tool_call_id":
+                            tool_call[
+                                "id"
+                            ],
+                    }
+
+                    tool_result = tool_results.get(
+                        tool_call["id"]
+                    )
+
+                    if tool_result is not None:
+                        tool_call_record[
                             "result"
-                        ] = message.content
+                        ] = tool_result
+
+                    tool_calls.append(
+                        tool_call_record
+                    )
 
 # lưu transcript
         save_transcript(

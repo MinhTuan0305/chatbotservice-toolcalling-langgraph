@@ -5,3 +5,4 @@ langchain-google-genai
 sqlalchemy
 psycopg2-binary
 python-dotenv
+langgraph-checkpoint-redis

@@ -9,6 +9,8 @@ from app.tools.customer_tools import (
 
 from app.tools.order_tools import (
     get_order_detail,
+    get_orders_by_status,
+    get_total_order_amount_by_status,
 )
 
 from app.tools.revenue_tools import (
@@ -24,4 +26,6 @@ ALL_TOOLS = [
     get_order_detail,
     get_revenue_by_category,
     get_top_customers,
+    get_orders_by_status,
+    get_total_order_amount_by_status,
 ]

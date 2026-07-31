@@ -194,5 +194,459 @@
     "assistant": {
       "final_answer": "Tôi xin lỗi, tôi không có quyền truy cập hoặc tạo mã giảm giá. Bạn có muốn tìm kiếm sản phẩm hoặc kiểm tra thông tin đơn hàng không?"
     }
+  },
+  {
+    "id": "d00fd077-46e6-48cf-8bcc-4b56e17ca162",
+    "timestamp": "2026-07-28T15:50:14.565245",
+    "user": {
+      "input": "tổng giá tiền của các đơn hàng bị hủy là bao nhiêu"
+    },
+    "tool_calls": [],
+    "assistant": {
+      "final_answer": "Tôi rất tiếc, tôi không thể tính tổng giá tiền của các đơn hàng bị hủy. Hệ thống của tôi không hỗ trợ truy vấn tổng giá trị đơn hàng theo trạng thái trên toàn bộ cửa hàng. Tôi chỉ có thể lấy danh sách đơn hàng của một khách hàng cụ thể và tính tổng tiền cho các đơn hàng đó."
+    }
+  },
+  {
+    "id": "6e8c2d6a-7f17-467a-9a23-cca51fa9c178",
+    "timestamp": "2026-07-28T15:57:40.859243",
+    "user": {
+      "input": "tổng giá tiền của các đơn hàng bị hủy là bao nhiêu"
+    },
+    "tool_calls": [],
+    "assistant": {
+      "final_answer": "Tôi rất tiếc, tôi không thể tính tổng giá tiền của các đơn hàng bị hủy. Hệ thống của tôi không hỗ trợ truy vấn tổng giá trị đơn hàng theo trạng thái trên toàn bộ cửa hàng. Tôi chỉ có thể lấy danh sách đơn hàng của một khách hàng cụ thể và tính tổng tiền cho các đơn hàng đó."
+    }
+  },
+  {
+    "id": "384ec956-f3ff-43c5-9667-a5275b21d064",
+    "timestamp": "2026-07-28T16:10:06.265398",
+    "user": {
+      "input": "tổng giá tiền của các đơn hàng bị hủy là bao nhiêu"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_orders_by_status",
+        "arguments": {
+          "status": "cancelled"
+        },
+        "tool_call_id": "d6e3b79e-3de1-4a7d-8539-57cf1203e174",
+        "result": "[{'order_id': 12, 'customer_id': 4, 'order_date': datetime.date(2024, 7, 25), 'status': 'cancelled', 'shipped_date': None, 'order_total': Decimal('20000000.00')}, {'order_id': 6, 'customer_id': 2, 'order_date': datetime.date(2024, 7, 10), 'status': 'cancelled', 'shipped_date': None, 'order_total': Decimal('20000000.00')}]"
+      }
+    ],
+    "assistant": {
+      "final_answer": "Tổng giá tiền của các đơn hàng bị hủy là 40,000,000 VND."
+    }
+  },
+  {
+    "id": "f1f1c262-d688-479e-bb04-505ec2770946",
+    "timestamp": "2026-07-28T16:22:27.939364",
+    "user": {
+      "input": "doanh thu theo từng category "
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_revenue_by_category",
+        "arguments": {},
+        "tool_call_id": "1b564007-c1a0-4faa-aaf2-6edb597a73ba",
+        "result": "[{'category': 'Điện thoại', 'revenue': Decimal('74000000.00')}, {'category': 'Laptop', 'revenue': Decimal('60000000.00')}, {'category': 'Phụ kiện', 'revenue': Decimal('19400000.00')}]"
+      }
+    ],
+    "assistant": {
+      "final_answer": "Doanh thu theo từng danh mục sản phẩm như sau:\n*   **Điện thoại**: 74,000,000 VND\n*   **Laptop**: 60,000,000 VND\n*   **Phụ kiện**: 19,400,000 VND"
+    }
+  },
+  {
+    "id": "fedcf67c-f585-42a4-b0be-83df3d96a625",
+    "timestamp": "2026-07-29T16:06:39.201681",
+    "user": {
+      "input": "cho tôi biết sản phẩm nào đang bán chạy nhất?"
+    },
+    "tool_calls": [],
+    "assistant": {
+      "final_answer": "Tôi xin lỗi, tôi không thể cho bạn biết sản phẩm nào đang bán chạy nhất. Hệ thống của tôi không có công cụ để truy vấn thông tin này. Tôi chỉ có thể cung cấp doanh thu theo danh mục sản phẩm chứ không thể đi sâu vào từng sản phẩm cụ thể."
+    }
+  },
+  {
+    "id": "986bedcf-124c-406b-ab48-d32a44587a93",
+    "timestamp": "2026-07-29T16:07:06.990935",
+    "user": {
+      "input": "sản phẩm nào đang có lượt bán nhiều nhất"
+    },
+    "tool_calls": [],
+    "assistant": {
+      "final_answer": "Tôi xin lỗi, tôi không thể cho bạn biết sản phẩm nào đang có lượt bán nhiều nhất. Hệ thống của tôi không có công cụ để truy vấn thông tin này. Tôi chỉ có thể cung cấp doanh thu theo danh mục sản phẩm chứ không thể đi sâu vào từng sản phẩm cụ thể."
+    }
+  },
+  {
+    "id": "c1d35ef7-56bd-4398-8a6e-4c72323c8968",
+    "timestamp": "2026-07-29T16:07:25.516811",
+    "user": {
+      "input": "sản phẩm nào có doanh thu cao nhất"
+    },
+    "tool_calls": [],
+    "assistant": {
+      "final_answer": "Tôi xin lỗi, tôi không thể cho bạn biết sản phẩm nào có doanh thu cao nhất. Hệ thống của tôi không có công cụ để truy vấn thông tin doanh thu theo từng sản phẩm cụ thể. Tôi chỉ có thể cung cấp doanh thu theo danh mục sản phẩm."
+    }
+  },
+  {
+    "id": "8f8e5863-7e77-43e9-9846-629664ba00d3",
+    "timestamp": "2026-07-29T16:07:45.325000",
+    "user": {
+      "input": "danh mục sản phẩm nào có doanh thu cao nhất"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_revenue_by_category",
+        "arguments": {},
+        "tool_call_id": "2651b5bf-8669-4d60-875e-0fb2ba100894",
+        "result": "[{'category': 'Điện thoại', 'revenue': Decimal('74000000.00')}, {'category': 'Laptop', 'revenue': Decimal('60000000.00')}, {'category': 'Phụ kiện', 'revenue': Decimal('19400000.00')}]"
+      }
+    ],
+    "assistant": {
+      "final_answer": "Danh mục sản phẩm có doanh thu cao nhất là \"Điện thoại\" với 74,000,000 VNĐ."
+    }
+  },
+  {
+    "id": "1b6afb1b-1d96-4379-a340-3339df159abe",
+    "timestamp": "2026-07-29T16:11:27.108366",
+    "user": {
+      "input": "khách hàng nguyễn văn an có những đơn hàng nào"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_customer_by_name",
+        "arguments": {
+          "name": "nguyễn văn an"
+        },
+        "tool_call_id": "c6b39115-20b9-4664-822a-a94590eeacaa",
+        "result": "[{'id': 1, 'name': 'Nguyễn Văn An', 'city': 'Hà Nội', 'created_at': datetime.date(2024, 1, 15)}]"
+      },
+      {
+        "tool_name": "get_customer_orders",
+        "arguments": {
+          "customer_id": 1
+        },
+        "tool_call_id": "fa8c5e4d-eb68-4eb8-89da-d9d641247d1f",
+        "result": "[{'order_id': 11, 'customer_id': 1, 'order_date': datetime.date(2024, 7, 22), 'status': 'completed', 'shipped_date': datetime.date(2024, 7, 24), 'total_amount': Decimal('30000000.00')}, {'order_id': 2, 'customer_id': 1, 'order_date': datetime.date(2024, 7, 2), 'status': 'completed', 'shipped_date': datetime.date(2024, 7, 4), 'total_amount': Decimal('2050000.00')}, {'order_id': 1, 'customer_id': 1, 'order_date': datetime.date(2024, 6, 10), 'status': 'completed', 'shipped_date': datetime.date(2024, 6, 12), 'total_amount': Decimal('26500000.00')}]"
+      }
+    ],
+    "assistant": {
+      "final_answer": "Khách hàng Nguyễn Văn An có các đơn hàng sau:\n*   **Đơn hàng ID 11**: Ngày đặt hàng 22/07/2024, trạng thái hoàn thành, ngày giao hàng 24/07/2024, tổng tiền 30,000,000 VNĐ.\n*   **Đơn hàng ID 2**: Ngày đặt hàng 02/07/2024, trạng thái hoàn thành, ngày giao hàng 04/07/2024, tổng tiền 2,050,000 VNĐ.\n*   **Đơn hàng ID 1**: Ngày đặt hàng 10/06/2024, trạng thái hoàn thành, ngày giao hàng 12/06/2024, tổng tiền 26,500,000 VNĐ."
+    }
+  },
+  {
+    "id": "dc57797a-0f3e-4cde-a45f-69746e984367",
+    "timestamp": "2026-07-29T16:14:23.121910",
+    "user": {
+      "input": "khách hàng nguyễn văn an có những đơn hàng nào và macbook air m3 có id sản phẩm là bao nhiêu?"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_customer_by_name",
+        "arguments": {
+          "name": "nguyễn văn an"
+        },
+        "tool_call_id": "ad9198a7-1196-43ab-a4c9-21cc26084b6c",
+        "result": "[{'id': 1, 'name': 'Nguyễn Văn An', 'city': 'Hà Nội', 'created_at': datetime.date(2024, 1, 15)}]"
+      },
+      {
+        "tool_name": "search_products",
+        "arguments": {
+          "keyword": "macbook air m3"
+        },
+        "tool_call_id": "43ad1609-119f-48a3-9159-5046deac1cc8",
+        "result": "[{'id': 4, 'name': 'MacBook Air M3', 'category': 'Laptop', 'price': Decimal('28000000.00')}]"
+      },
+      {
+        "tool_name": "get_customer_orders",
+        "arguments": {
+          "customer_id": 1
+        },
+        "tool_call_id": "6fd2ebbf-a089-4f24-9c1a-8efe1b7550c7",
+        "result": "[{'order_id': 11, 'customer_id': 1, 'order_date': datetime.date(2024, 7, 22), 'status': 'completed', 'shipped_date': datetime.date(2024, 7, 24), 'total_amount': Decimal('30000000.00')}, {'order_id': 2, 'customer_id': 1, 'order_date': datetime.date(2024, 7, 2), 'status': 'completed', 'shipped_date': datetime.date(2024, 7, 4), 'total_amount': Decimal('2050000.00')}, {'order_id': 1, 'customer_id': 1, 'order_date': datetime.date(2024, 6, 10), 'status': 'completed', 'shipped_date': datetime.date(2024, 6, 12), 'total_amount': Decimal('26500000.00')}]"
+      }
+    ],
+    "assistant": {
+      "final_answer": "Khách hàng Nguyễn Văn An có các đơn hàng sau:\n*   **Đơn hàng ID 11**: Ngày đặt hàng 22/07/2024, trạng thái hoàn thành, ngày giao hàng 24/07/2024, tổng tiền 30,000,000 VNĐ.\n*   **Đơn hàng ID 2**: Ngày đặt hàng 02/07/2024, trạng thái hoàn thành, ngày giao hàng 04/07/2024, tổng tiền 2,050,000 VNĐ.\n*   **Đơn hàng ID 1**: Ngày đặt hàng 10/06/2024, trạng thái hoàn thành, ngày giao hàng 12/06/2024, tổng tiền 26,500,000 VNĐ.\n\nSản phẩm MacBook Air M3 có ID sản phẩm là 4."
+    }
+  },
+  {
+    "id": "3e27e88e-e720-4be5-9d90-4b93ead044a8",
+    "timestamp": "2026-07-29T16:17:22.660432",
+    "user": {
+      "input": "Cho tôi biết danh mục nào có doanh thu cao nhất và top 3 khách hàng chi tiêu nhiều nhất."
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_revenue_by_category",
+        "arguments": {},
+        "tool_call_id": "70655c8b-f481-41d9-996c-91561491da00",
+        "result": "[{'category': 'Điện thoại', 'revenue': Decimal('74000000.00')}, {'category': 'Laptop', 'revenue': Decimal('60000000.00')}, {'category': 'Phụ kiện', 'revenue': Decimal('19400000.00')}]"
+      },
+      {
+        "tool_name": "get_top_customers",
+        "arguments": {
+          "limit": 3
+        },
+        "tool_call_id": "92ad5535-0de3-4aa6-abc5-9b2dfcf4aeb9",
+        "result": "[{'customer_id': 1, 'name': 'Nguyễn Văn An', 'city': 'Hà Nội', 'total_spent': Decimal('58550000.00')}, {'customer_id': 4, 'name': 'Phạm Thị Dung', 'city': 'Hà Nội', 'total_spent': Decimal('33200000.00')}, {'customer_id': 2, 'name': 'Trần Thị Bình', 'city': 'Hồ Chí Minh', 'total_spent': Decimal('28000000.00')}]"
+      }
+    ],
+    "assistant": {
+      "final_answer": "Danh mục sản phẩm có doanh thu cao nhất là **Điện thoại** với 74,000,000 VNĐ.\n\nTop 3 khách hàng chi tiêu nhiều nhất là:\n1.  **Nguyễn Văn An** (ID: 1, Thành phố: Hà Nội) với tổng chi tiêu: 58,550,000 VNĐ.\n2.  **Phạm Thị Dung** (ID: 4, Thành phố: Hà Nội) với tổng chi tiêu: 33,200,000 VNĐ.\n3.  **Trần Thị Bình** (ID: 2, Thành phố: Hồ Chí Minh) với tổng chi tiêu: 28,000,000 VNĐ."
+    }
+  },
+  {
+    "id": "772e90e8-bde0-4c54-8531-295268452df3",
+    "timestamp": "2026-07-29T17:08:03.145042",
+    "user": {
+      "input": "số đơn bị hủy là bao nhiêu?"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_orders_by_status",
+        "arguments": {
+          "status": "cancelled"
+        },
+        "tool_call_id": "c3ca2e89-e505-4068-b3eb-228d3bb2e14b",
+        "result": "[{'order_id': 12, 'customer_id': 4, 'order_date': datetime.date(2024, 7, 25), 'status': 'cancelled', 'shipped_date': None, 'order_total': Decimal('20000000.00')}, {'order_id': 6, 'customer_id': 2, 'order_date': datetime.date(2024, 7, 10), 'status': 'cancelled', 'shipped_date': None, 'order_total': Decimal('20000000.00')}]"
+      }
+    ],
+    "assistant": {
+      "final_answer": "Có 2 đơn hàng đã bị hủy."
+    }
+  },
+  {
+    "id": "6672a0d7-6c37-420a-a369-50f134f774f1",
+    "timestamp": "2026-07-29T17:08:32.987434",
+    "user": {
+      "input": "tổng số đơn hàng đang pending"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_orders_by_status",
+        "arguments": {
+          "status": "pending"
+        },
+        "tool_call_id": "cf5abc79-f912-43d1-af95-966826d889ec",
+        "result": "[{'order_id': 9, 'customer_id': 7, 'order_date': datetime.date(2024, 7, 18), 'status': 'pending', 'shipped_date': None, 'order_total': Decimal('18000000.00')}, {'order_id': 4, 'customer_id': 3, 'order_date': datetime.date(2024, 6, 20), 'status': 'pending', 'shipped_date': None, 'order_total': Decimal('15350000.00')}]"
+      }
+    ],
+    "assistant": {
+      "final_answer": "Có 2 đơn hàng đang chờ xử lý."
+    }
+  },
+  {
+    "id": "4f285381-8975-4fd6-b598-d451a571877d",
+    "timestamp": "2026-07-29T17:17:13.357625",
+    "user": {
+      "input": "các đơn hàng pending có tổng tiền là bao nhiêu"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_total_order_amount_by_status",
+        "arguments": {
+          "status": "pending"
+        },
+        "tool_call_id": "23690627-3041-4c02-8c34-471fa1c2e423",
+        "result": "{'order_count': 2, 'total_amount': Decimal('33350000.00')}"
+      }
+    ],
+    "assistant": {
+      "final_answer": "Tổng giá trị của các đơn hàng đang chờ xử lý là 33,350,000.00 VNĐ."
+    }
+  },
+  {
+    "id": "d0e2ae1e-3d7d-4e5e-8b6f-9901be764d1f",
+    "timestamp": "2026-07-30T10:33:18.667831",
+    "user": {
+      "input": "số hàng của Nguyễn văn an"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_customer_by_name",
+        "arguments": {
+          "name": "Nguyễn văn an"
+        },
+        "tool_call_id": "86858c92-5779-43dd-a96c-2094246d43d6",
+        "result": "[{'id': 1, 'name': 'Nguyễn Văn An', 'city': 'Hà Nội', 'created_at': datetime.date(2024, 1, 15)}]"
+      },
+      {
+        "tool_name": "get_customer_orders",
+        "arguments": {
+          "customer_id": 1
+        },
+        "tool_call_id": "52ce52c8-8a29-4813-8d20-a58e014cf2e7",
+        "result": "[{'order_id': 11, 'customer_id': 1, 'order_date': datetime.date(2024, 7, 22), 'status': 'completed', 'shipped_date': datetime.date(2024, 7, 24), 'total_amount': Decimal('30000000.00')}, {'order_id': 2, 'customer_id': 1, 'order_date': datetime.date(2024, 7, 2), 'status': 'completed', 'shipped_date': datetime.date(2024, 7, 4), 'total_amount': Decimal('2050000.00')}, {'order_id': 1, 'customer_id': 1, 'order_date': datetime.date(2024, 6, 10), 'status': 'completed', 'shipped_date': datetime.date(2024, 6, 12), 'total_amount': Decimal('26500000.00')}]"
+      }
+    ],
+    "assistant": {
+      "final_answer": "Khách hàng Nguyễn Văn An có 3 đơn hàng."
+    }
+  },
+  {
+    "id": "ebff8ded-4409-42c6-9c64-f3e6625f3df5",
+    "timestamp": "2026-07-31T11:21:49.954404",
+    "user": {
+      "input": "chĂ o báº¡n tĂ´i lĂ  sá»¹"
+    },
+    "tool_calls": [],
+    "assistant": {
+      "final_answer": "Chào bạn Sĩ, tôi có thể giúp gì cho bạn?"
+    }
+  },
+  {
+    "id": "30e036bd-70d7-40bf-a597-36aaa809e6a8",
+    "timestamp": "2026-07-31T11:22:32.865330",
+    "user": {
+      "input": "chào bạn tôi là sỹ"
+    },
+    "tool_calls": [],
+    "assistant": {
+      "final_answer": "Chào bạn Sỹ, tôi có thể giúp gì cho bạn?"
+    }
+  },
+  {
+    "id": "9e1c4df7-6452-48be-9d2b-f8acc4b4cdb6",
+    "timestamp": "2026-07-31T11:22:53.545124",
+    "user": {
+      "input": "chị Bình có bao nhiêu đơn hàng"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_customer_orders",
+        "arguments": {
+          "customer_id": 2
+        },
+        "tool_call_id": "6b57c753-273f-4527-94da-dbbf7f7100dd"
+      },
+      {
+        "tool_name": "get_customer_by_name",
+        "arguments": {
+          "name": "Bình"
+        },
+        "tool_call_id": "df6c7fa0-8075-4ca2-8af3-d6319d30dfc8"
+      }
+    ],
+    "assistant": {
+      "final_answer": "Chị Trần Thị Bình có 2 đơn hàng."
+    }
+  },
+  {
+    "id": "aec0a58a-4c04-47a8-b06e-597af3f887e4",
+    "timestamp": "2026-07-31T11:28:11.793498",
+    "user": {
+      "input": "xin chĂ o"
+    },
+    "tool_calls": [],
+    "assistant": {
+      "final_answer": "Chào bạn, tôi có thể giúp gì cho bạn?"
+    }
+  },
+  {
+    "id": "30ce1197-ce56-4175-a503-3039904fd573",
+    "timestamp": "2026-07-31T11:34:19.568939",
+    "user": {
+      "input": "bình có bao nhiêu đơn hàng"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_customer_by_name",
+        "arguments": {
+          "name": "Bình"
+        },
+        "tool_call_id": "df6c7fa0-8075-4ca2-8af3-d6319d30dfc8",
+        "result": "[{'id': 2, 'name': 'Trần Thị Bình', 'city': 'Hồ Chí Minh', 'created_at': datetime.date(2024, 2, 3)}]"
+      },
+      {
+        "tool_name": "get_customer_orders",
+        "arguments": {
+          "customer_id": 2
+        },
+        "tool_call_id": "6b57c753-273f-4527-94da-dbbf7f7100dd",
+        "result": "[{'order_id': 6, 'customer_id': 2, 'order_date': datetime.date(2024, 7, 10), 'status': 'cancelled', 'shipped_date': None, 'total_amount': Decimal('20000000.00')}, {'order_id': 3, 'customer_id': 2, 'order_date': datetime.date(2024, 6, 15), 'status': 'completed', 'shipped_date': datetime.date(2024, 6, 17), 'total_amount': Decimal('28000000.00')}]"
+      }
+    ],
+    "assistant": {
+      "final_answer": "Chị Trần Thị Bình có 2 đơn hàng."
+    }
+  },
+  {
+    "id": "88a9f809-b833-4387-b45f-fc4706040438",
+    "timestamp": "2026-07-31T13:30:04.120097",
+    "user": {
+      "input": "tên tôi là gì"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_customer_by_name",
+        "arguments": {
+          "name": "Bình"
+        },
+        "tool_call_id": "df6c7fa0-8075-4ca2-8af3-d6319d30dfc8",
+        "result": "[{'id': 2, 'name': 'Trần Thị Bình', 'city': 'Hồ Chí Minh', 'created_at': datetime.date(2024, 2, 3)}]"
+      },
+      {
+        "tool_name": "get_customer_orders",
+        "arguments": {
+          "customer_id": 2
+        },
+        "tool_call_id": "6b57c753-273f-4527-94da-dbbf7f7100dd",
+        "result": "[{'order_id': 6, 'customer_id': 2, 'order_date': datetime.date(2024, 7, 10), 'status': 'cancelled', 'shipped_date': None, 'total_amount': Decimal('20000000.00')}, {'order_id': 3, 'customer_id': 2, 'order_date': datetime.date(2024, 6, 15), 'status': 'completed', 'shipped_date': datetime.date(2024, 6, 17), 'total_amount': Decimal('28000000.00')}]"
+      }
+    ],
+    "assistant": {
+      "final_answer": "Bạn là Sỹ."
+    }
+  },
+  {
+    "id": "12f52401-86fe-4713-850d-fabf725cf4d4",
+    "timestamp": "2026-07-31T14:22:02.727557",
+    "user": {
+      "input": "bĂ¬nh cĂ³ bao nhiĂªu Ä‘Æ¡n hĂ ng"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_customer_by_name",
+        "arguments": {
+          "name": "Bình"
+        },
+        "tool_call_id": "732c6f17-3e51-438a-89c4-332f98c29388",
+        "result": "[{'id': 2, 'name': 'Trần Thị Bình', 'city': 'Hồ Chí Minh', 'created_at': datetime.date(2024, 2, 3)}]"
+      },
+      {
+        "tool_name": "get_customer_orders",
+        "arguments": {
+          "customer_id": 2
+        },
+        "tool_call_id": "29b4abf4-e309-47f9-ac8b-065241679cc8",
+        "result": "[{'order_id': 6, 'customer_id': 2, 'order_date': datetime.date(2024, 7, 10), 'status': 'cancelled', 'shipped_date': None, 'total_amount': Decimal('20000000.00')}, {'order_id': 3, 'customer_id': 2, 'order_date': datetime.date(2024, 6, 15), 'status': 'completed', 'shipped_date': datetime.date(2024, 6, 17), 'total_amount': Decimal('28000000.00')}]"
+      }
+    ],
+    "assistant": {
+      "final_answer": "Khách hàng Trần Thị Bình có 2 đơn hàng."
+    }
+  },
+  {
+    "id": "b53e1a65-37bf-4955-8f47-2d487697240c",
+    "timestamp": "2026-07-31T14:22:03.727738",
+    "user": {
+      "input": "tĂªn tĂ´i lĂ  gĂ¬"
+    },
+    "tool_calls": [],
+    "assistant": {
+      "final_answer": "Tôi không có thông tin về tên của bạn. Bạn có thể cho tôi biết tên của bạn không?"
+    }
+  },
+  {
+    "id": "0cf70487-cfad-45d0-8178-90c1d13f6930",
+    "timestamp": "2026-07-31T14:30:28.915465",
+    "user": {
+      "input": "tên tôi là Minh phải ko?"
+    },
+    "tool_calls": [],
+    "assistant": {
+      "final_answer": "Không, tên bạn là Sỹ."
+    }
   }
 ]

@@ -19,6 +19,10 @@ from app.tools import (
     ALL_TOOLS,
 )
 
+from app.db.redis import(
+    checkpointer,
+)
+
 
 def build_graph():
 
@@ -58,7 +62,9 @@ def build_graph():
         END,
     )
 
-    return builder.compile()
+    return builder.compile(
+        checkpointer=checkpointer
+    )
 
 
 graph = build_graph()
