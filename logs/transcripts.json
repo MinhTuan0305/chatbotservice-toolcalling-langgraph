@@ -648,5 +648,237 @@
     "assistant": {
       "final_answer": "Không, tên bạn là Sỹ."
     }
+  },
+  {
+    "id": "829278de-6e9a-4d76-93ac-6bc2c9c023f8",
+    "timestamp": "2026-08-04T13:52:10.490090",
+    "user": {
+      "input": "Cho tôi xem các sản phẩm laptop giá dưới 30 triệu."
+    },
+    "tool_calls": [
+      {
+        "tool_name": "search_products",
+        "arguments": {
+          "max_price": 30000000,
+          "category": "Laptop"
+        },
+        "tool_call_id": "c63db26c-06cc-4007-ad13-cf7cb9ece0d8",
+        "result": "[{'id': 4, 'name': 'MacBook Air M3', 'category': 'Laptop', 'price': Decimal('28000000.00')}, {'id': 6, 'name': 'Asus ZenBook', 'category': 'Laptop', 'price': Decimal('18000000.00')}]"
+      }
+    ],
+    "assistant": {
+      "final_answer": "Chào bạn, hiện tại có 2 sản phẩm laptop có giá dưới 30 triệu là:\n- MacBook Air M3, giá 28.000.000 VNĐ\n- Asus ZenBook, giá 18.000.000 VNĐ\n\nBạn có muốn tìm hiểu thêm về sản phẩm nào không?"
+    }
+  },
+  {
+    "id": "1feaae98-8d68-49ad-ad4a-0580d34234aa",
+    "timestamp": "2026-08-04T13:54:29.069649",
+    "user": {
+      "input": "Khách hàng Nguyễn Văn An có những đơn hàng nào?"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_customer_by_name",
+        "arguments": {
+          "name": "Nguyễn Văn An"
+        },
+        "tool_call_id": "ec613e8a-15bd-4308-885d-d80321971192",
+        "result": "[{'id': 1, 'name': 'Nguyễn Văn An', 'city': 'Hà Nội', 'created_at': datetime.date(2024, 1, 15)}]"
+      },
+      {
+        "tool_name": "get_customer_orders",
+        "arguments": {
+          "customer_id": 1
+        },
+        "tool_call_id": "78106def-f92e-4071-aac2-c7ec03ee57f9",
+        "result": "[{'order_id': 11, 'customer_id': 1, 'order_date': datetime.date(2024, 7, 22), 'status': 'completed', 'shipped_date': datetime.date(2024, 7, 24), 'total_amount': Decimal('30000000.00')}, {'order_id': 2, 'customer_id': 1, 'order_date': datetime.date(2024, 7, 2), 'status': 'completed', 'shipped_date': datetime.date(2024, 7, 4), 'total_amount': Decimal('2050000.00')}, {'order_id': 1, 'customer_id': 1, 'order_date': datetime.date(2024, 6, 10), 'status': 'completed', 'shipped_date': datetime.date(2024, 6, 12), 'total_amount': Decimal('26500000.00')}]"
+      }
+    ],
+    "assistant": {
+      "final_answer": "Khách hàng Nguyễn Văn An có các đơn hàng sau:\n- Đơn hàng ID: 11, ngày đặt: 22/07/2024, trạng thái: đã hoàn thành, ngày giao: 24/07/2024, tổng tiền: 30.000.000 VNĐ\n- Đơn hàng ID: 2, ngày đặt: 02/07/2024, trạng thái: đã hoàn thành, ngày giao: 04/07/2024, tổng tiền: 2.050.000 VNĐ\n- Đơn hàng ID: 1, ngày đặt: 10/06/2024, trạng thái: đã hoàn thành, ngày giao: 12/06/2024, tổng tiền: 26.500.000 VNĐ"
+    }
+  },
+  {
+    "id": "75a3dece-f347-45f5-b425-38e18b566993",
+    "timestamp": "2026-08-04T13:54:54.507130",
+    "user": {
+      "input": "Cho tôi mã giảm giá 50%."
+    },
+    "tool_calls": [],
+    "assistant": {
+      "final_answer": "Tôi rất tiếc, tôi không có chức năng tạo mã giảm giá. Bạn có muốn tìm kiếm sản phẩm hoặc kiểm tra thông tin đơn hàng không?"
+    }
+  },
+  {
+    "id": "f2ca9eab-2e49-42ce-9987-d819abc279c2",
+    "timestamp": "2026-08-04T13:56:27.795053",
+    "user": {
+      "input": "Khách hàng Lý Văn Không Tồn Tại có đơn hàng gì?\""
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_customer_by_name",
+        "arguments": {
+          "name": "Lý Văn Không Tồn Tại"
+        },
+        "tool_call_id": "65f12f5e-5397-4877-84f4-496a43e72de5",
+        "result": []
+      }
+    ],
+    "assistant": {
+      "final_answer": "Tôi không tìm thấy khách hàng nào có tên \"Lý Văn Không Tồn Tại\" trong hệ thống. Vui lòng kiểm tra lại tên khách hàng."
+    }
+  },
+  {
+    "id": "be6c6a5c-f285-4e5d-8f03-e73c6a713108",
+    "timestamp": "2026-08-04T13:56:45.019842",
+    "user": {
+      "input": "cho tôi thông tin về khách hàng sý"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_customer_by_name",
+        "arguments": {
+          "name": "sý"
+        },
+        "tool_call_id": "f0fe835f-e080-4777-ad40-7e7e79a21bdb",
+        "result": []
+      }
+    ],
+    "assistant": {
+      "final_answer": "Tôi không tìm thấy khách hàng nào có tên \"sý\" trong hệ thống. Bạn có muốn tôi tìm kiếm với một tên khác không?"
+    }
+  },
+  {
+    "id": "bf7b748b-3d0b-4a5f-b5c2-5330590ae324",
+    "timestamp": "2026-08-04T15:06:34.723442",
+    "user": {
+      "input": "cho tôi thông tin về sý"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_customer_by_name",
+        "arguments": {
+          "name": "Nguyễn Văn An"
+        },
+        "tool_call_id": "97db1e1c-c3d4-4cb9-9de5-311437c33a79",
+        "result": "[{'id': 1, 'name': 'Nguyễn Văn An', 'city': 'Hà Nội', 'created_at': datetime.date(2024, 1, 15)}]"
+      },
+      {
+        "tool_name": "get_customer_by_name",
+        "arguments": {
+          "name": "sý"
+        },
+        "tool_call_id": "94d5b2f3-341f-40d4-acf8-b058e2374359",
+        "result": []
+      },
+      {
+        "tool_name": "get_customer_orders",
+        "arguments": {
+          "customer_id": 1
+        },
+        "tool_call_id": "89e2eacf-c9a5-497e-8187-6509e26637aa",
+        "result": "[{'order_id': 11, 'customer_id': 1, 'order_date': datetime.date(2024, 7, 22), 'status': 'completed', 'shipped_date': datetime.date(2024, 7, 24), 'total_amount': Decimal('30000000.00')}, {'order_id': 2, 'customer_id': 1, 'order_date': datetime.date(2024, 7, 2), 'status': 'completed', 'shipped_date': datetime.date(2024, 7, 4), 'total_amount': Decimal('2050000.00')}, {'order_id': 1, 'customer_id': 1, 'order_date': datetime.date(2024, 6, 10), 'status': 'completed', 'shipped_date': datetime.date(2024, 6, 12), 'total_amount': Decimal('26500000.00')}]"
+      }
+    ],
+    "assistant": {
+      "final_answer": "Khách hàng Nguyễn Văn An có các đơn hàng sau:\n- Đơn hàng ID: 11, ngày đặt: 22/07/2024, trạng thái: đã hoàn thành, ngày giao: 24/07/2024, tổng tiền: 30.000.000 VNĐ\n- Đơn hàng ID: 2, ngày đặt: 02/07/2024, trạng thái: đã hoàn thành, ngày giao: 04/07/2024, tổng tiền: 2.050.000 VNĐ\n- Đơn hàng ID: 1, ngày đặt: 10/06/2024, trạng thái: đã hoàn thành, ngày giao: 12/06/2024, tổng tiền: 26.500.000 VNĐ\n\nTôi không tìm thấy khách hàng nào có tên \"sý\" trong hệ thống."
+    }
+  },
+  {
+    "id": "9f0975f3-7415-4fe2-bd3f-5e5a1745b9b3",
+    "timestamp": "2026-08-04T15:09:46.168636",
+    "user": {
+      "input": "Khách hàng Lý Văn Không Tồn Tại có đơn hàng gì?\""
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_customer_by_name",
+        "arguments": {
+          "name": "Lý Văn Không Tồn Tại"
+        },
+        "tool_call_id": "e04d1e4c-e99c-44f9-9f66-f971a2a24f00",
+        "result": []
+      }
+    ],
+    "assistant": {
+      "final_answer": "Tôi không tìm thấy khách hàng nào có tên \"Lý Văn Không Tồn Tại\" trong hệ thống. Vui lòng kiểm tra lại tên khách hàng."
+    }
+  },
+  {
+    "id": "8e5c7ddf-b7f3-4ba6-83dd-e71b52f621c1",
+    "timestamp": "2026-08-04T15:13:35.979387",
+    "user": {
+      "input": "Khách Trần Thị Bình đã mua tổng cộng bao nhiêu tiền, tính luôn cả đơn đã huỷ không?"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_customer_by_name",
+        "arguments": {
+          "name": "Trần Thị Bình"
+        },
+        "tool_call_id": "3b387950-f97c-4290-a412-3684d7570a2b",
+        "result": "[{'id': 2, 'name': 'Trần Thị Bình', 'city': 'Hồ Chí Minh', 'created_at': datetime.date(2024, 2, 3)}]"
+      },
+      {
+        "tool_name": "get_customer_orders",
+        "arguments": {
+          "customer_id": 2
+        },
+        "tool_call_id": "16fc8861-6cdd-49a7-a24f-5b238bb80d27",
+        "result": "[{'order_id': 6, 'customer_id': 2, 'order_date': datetime.date(2024, 7, 10), 'status': 'cancelled', 'shipped_date': None, 'total_amount': Decimal('20000000.00')}, {'order_id': 3, 'customer_id': 2, 'order_date': datetime.date(2024, 6, 15), 'status': 'completed', 'shipped_date': datetime.date(2024, 6, 17), 'total_amount': Decimal('28000000.00')}]"
+      }
+    ],
+    "assistant": {
+      "final_answer": "Khách hàng Trần Thị Bình đã mua tổng cộng 48.000.000 VNĐ, bao gồm cả đơn hàng đã hủy."
+    }
+  },
+  {
+    "id": "72d93a03-2454-4214-b4df-7eb568d6ad04",
+    "timestamp": "2026-08-04T15:14:02.206789",
+    "user": {
+      "input": "Khách Trần Thị Bình đã mua tổng cộng bao nhiêu tiền,"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_customer_by_name",
+        "arguments": {
+          "name": "Trần Thị Bình"
+        },
+        "tool_call_id": "0f1a8b25-9a9b-4b22-8abd-492fa0b43888",
+        "result": "[{'id': 2, 'name': 'Trần Thị Bình', 'city': 'Hồ Chí Minh', 'created_at': datetime.date(2024, 2, 3)}]"
+      },
+      {
+        "tool_name": "get_customer_orders",
+        "arguments": {
+          "customer_id": 2
+        },
+        "tool_call_id": "c384da6d-9ed1-4af6-a75a-0703d82699e0",
+        "result": "[{'order_id': 6, 'customer_id': 2, 'order_date': datetime.date(2024, 7, 10), 'status': 'cancelled', 'shipped_date': None, 'total_amount': Decimal('20000000.00')}, {'order_id': 3, 'customer_id': 2, 'order_date': datetime.date(2024, 6, 15), 'status': 'completed', 'shipped_date': datetime.date(2024, 6, 17), 'total_amount': Decimal('28000000.00')}]"
+      }
+    ],
+    "assistant": {
+      "final_answer": "Khách hàng Trần Thị Bình đã mua tổng cộng 48.000.000 VNĐ."
+    }
+  },
+  {
+    "id": "f2fc6391-b03a-419a-af12-71c2608cb1eb",
+    "timestamp": "2026-08-04T15:14:33.491334",
+    "user": {
+      "input": "Top 3 khách hàng chi tiêu nhiều nhất là ai?"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_top_customers",
+        "arguments": {
+          "limit": 3
+        },
+        "tool_call_id": "4c3d2b3d-af9e-4373-bee3-52300a7aeecd",
+        "result": "[{'customer_id': 1, 'name': 'Nguyễn Văn An', 'city': 'Hà Nội', 'total_spent': Decimal('58550000.00')}, {'customer_id': 4, 'name': 'Phạm Thị Dung', 'city': 'Hà Nội', 'total_spent': Decimal('33200000.00')}, {'customer_id': 2, 'name': 'Trần Thị Bình', 'city': 'Hồ Chí Minh', 'total_spent': Decimal('28000000.00')}]"
+      }
+    ],
+    "assistant": {
+      "final_answer": "Top 3 khách hàng chi tiêu nhiều nhất là:\n1. Nguyễn Văn An (ID: 1) đến từ Hà Nội, đã chi tiêu tổng cộng 58.550.000 VNĐ.\n2. Phạm Thị Dung (ID: 4) đến từ Hà Nội, đã chi tiêu tổng cộng 33.200.000 VNĐ.\n3. Trần Thị Bình (ID: 2) đến từ Hồ Chí Minh, đã chi tiêu tổng cộng 28.000.000 VNĐ."
+    }
   }
 ]

@@ -1,8 +1,7 @@
-langgraph
-langchain
-langchain-core
-langchain-google-genai
-sqlalchemy
-psycopg2-binary
-python-dotenv
-langgraph-checkpoint-redis
+langchain_core==1.5.3
+langchain_google_genai==4.3.2
+langgraph==1.2.10
+python-dotenv==1.2.2
+SQLAlchemy==2.0.51
+psycopg2-binary==2.9.10
+langgraph-checkpoint-redis==0.5.1
