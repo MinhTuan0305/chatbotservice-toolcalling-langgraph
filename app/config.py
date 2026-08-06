@@ -19,6 +19,10 @@ DATABASE_URL = os.getenv(
     "DATABASE_URL"
 )
 
+REDIS_URL = os.getenv(
+    "REDIS_URL"
+)
+
 
 if not GEMINI_API_KEY:
     raise ValueError(
@@ -29,4 +33,10 @@ if not GEMINI_API_KEY:
 if not DATABASE_URL:
     raise ValueError(
         "DATABASE_URL chưa được cấu hình trong .env"
+    )
+
+
+if not REDIS_URL:
+    raise ValueError(
+        "REDIS_URL chưa được cấu hình trong .env"
     )

@@ -2,14 +2,19 @@ from redis import Redis
 
 from langgraph.checkpoint.redis import RedisSaver
 
-client = Redis(
-    host="localhost",
-    port=6379,
-    decode_responses=False,
-)
+from app.config import REDIS_URL
 
-checkpointer = RedisSaver(
-    redis_client=client
-)
+def create_checkpointer() -> RedisSaver:
+    client = Redis.from_url(
+        REDIS_URL,
+        decode_responses=False,
+    )
 
-checkpointer.setup()
+    checkpointer = RedisSaver(
+        redis_client=client
+    )
+
+    checkpointer.setup()
+
+    return checkpointer
+

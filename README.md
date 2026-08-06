@@ -133,9 +133,11 @@ Create a `.env` file in the project root.
 Example:
 
 ```env
-GOOGLE_API_KEY=your_gemini_api_key
+GEMINI_API_KEY=your_gemini_api_key
 
 DATABASE_URL=postgresql://username:password@localhost:5432/shop_db
+
+REDIS_URL=redis://localhost:6379/0
 ```
 
 ---
@@ -189,6 +191,16 @@ graph.invoke(
 ```
 
 Using different `thread_id` values creates independent conversations.
+
+---
+
+## Streaming Output
+
+The chatbot now streams the assistant response to the terminal token-by-token while the model is generating.
+
+- The final state is still saved after the run completes.
+- Transcript logging remains unchanged.
+- Streaming is shown only in the CLI output, not in Redis.
 
 ---
 

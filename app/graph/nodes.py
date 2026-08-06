@@ -1,3 +1,5 @@
+from langchain_core.messages import AIMessage, AIMessageChunk
+
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from app.config import (
@@ -12,6 +14,7 @@ llm = ChatGoogleGenerativeAI(
     model=GEMINI_MODEL,
     google_api_key=GEMINI_API_KEY,
     temperature=0,
+    streaming=True,
 )
 
 
@@ -64,15 +67,49 @@ def call_llm(state):
 
     messages = state["messages"]
 
-    response = llm_with_tools.invoke(
-        [
-            {
-                "role": "system",
-                "content": SYSTEM_PROMPT,
-            },
-            *messages,
-        ]
-    )
+    prompt_messages = [
+        {
+            "role": "system",
+            "content": SYSTEM_PROMPT,
+        },
+        *messages,
+    ]
+
+    streamed_response = None
+
+    for chunk in llm_with_tools.stream(
+        prompt_messages
+    ):
+        streamed_response = (
+            chunk
+            if streamed_response is None
+            else streamed_response + chunk
+        )
+
+    if streamed_response is None:
+        response = llm_with_tools.invoke(
+            prompt_messages
+        )
+    else:
+        response = AIMessage(
+            content=streamed_response.content,
+            additional_kwargs=
+                streamed_response.additional_kwargs,
+            response_metadata=
+                streamed_response.response_metadata,
+            tool_calls=streamed_response.tool_calls,
+            invalid_tool_calls=
+                streamed_response.invalid_tool_calls,
+        )
+
+    if isinstance(response, AIMessageChunk):
+        response = AIMessage(
+            content=response.content,
+            additional_kwargs=response.additional_kwargs,
+            response_metadata=response.response_metadata,
+            tool_calls=response.tool_calls,
+            invalid_tool_calls=response.invalid_tool_calls,
+        )
 
     return {
         "messages": [

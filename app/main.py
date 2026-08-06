@@ -1,9 +1,9 @@
 from langchain_core.messages import (
-    HumanMessage, AIMessage, ToolMessage,
+    HumanMessage, AIMessage, AIMessageChunk, ToolMessage,
 )
 
 from app.graph.workflow import (
-    graph,
+    build_graph,
 )
 
 from app.logging.trace_logger import (
@@ -12,6 +12,8 @@ from app.logging.trace_logger import (
 
 
 def chat():
+
+    graph = build_graph()
 
     THREAD_ID = input("Conversation ID: ")
     print("SHOP CUSTOMER SERVICE CHATBOT")
@@ -32,8 +34,10 @@ def chat():
             content=user_input
         )
 
-# chạy langgraph và lấy state cuối
-        result = graph.invoke(
+        result = None
+        streamed_output_started = False
+
+        for mode, data in graph.stream(
             {
                 "messages": [user_message]
             },
@@ -41,8 +45,55 @@ def chat():
                  "configurable": {
                       "thread_id": THREAD_ID
                     }
-            }
-        )
+            },
+            stream_mode=["messages", "values"],
+        ):
+            if mode == "messages":
+                message, _metadata = data
+                if isinstance(message, AIMessageChunk):
+                    content = message.content
+
+                    if isinstance(content, str):
+                        if not streamed_output_started:
+                            print(
+                                "\nBot:",
+                                end=" ",
+                                flush=True,
+                            )
+                            streamed_output_started = True
+
+                        print(
+                            content,
+                            end="",
+                            flush=True,
+                        )
+                    elif isinstance(content, list):
+                        text = "".join(
+                            block.get("text", "")
+                            for block in content
+                            if isinstance(block, dict)
+                            and block.get("type") == "text"
+                        )
+
+                        if text:
+                            if not streamed_output_started:
+                                print(
+                                    "\nBot:",
+                                    end=" ",
+                                    flush=True,
+                                )
+                                streamed_output_started = True
+
+                            print(
+                                text,
+                                end="",
+                                flush=True,
+                            )
+            elif mode == "values":
+                result = data
+
+        if result is None:
+            continue
 
         messages = result[
             "messages"
@@ -130,11 +181,13 @@ def chat():
                     final_answer=final_answer,
                 )
 
-        
-        print(
-            "\nBot:",
-            final_answer,
-        )
+        if streamed_output_started:
+            print()
+        else:
+            print(
+                "\nBot:",
+                final_answer,
+            )
 
 if __name__ == "__main__":
     chat()
