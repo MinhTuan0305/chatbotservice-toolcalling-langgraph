@@ -23,6 +23,10 @@ from app.db.redis import(
     create_checkpointer,
 )
 
+from app.graph.router import (
+    tool_router,
+)
+
 
 def build_graph():
 
@@ -49,7 +53,7 @@ def build_graph():
 
     builder.add_conditional_edges(
         "llm",
-        tools_condition,
+        tool_router,
     )
 
     builder.add_edge(

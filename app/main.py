@@ -19,10 +19,24 @@ def chat():
     print("SHOP CUSTOMER SERVICE CHATBOT")
     print("Nhập 'exit' để thoát.")
 
+    tool_enabled = True
     while True:
         user_input = input(
             "\nUser: "
         )
+
+        if user_input.lower() == "/tool off":
+            tool_enabled = False
+            print(
+                "Tool disabled."
+            )
+            continue
+        elif user_input.lower() == "/tool on":
+            tool_enabled = True
+            print(
+                "Tool enabled."
+            )
+            continue
 
         if user_input.lower() == "exit":
             print(
@@ -43,7 +57,8 @@ def chat():
             },
             config={
                  "configurable": {
-                      "thread_id": THREAD_ID
+                        "thread_id": THREAD_ID,
+                        "tool_enabled": tool_enabled,
                     }
             },
             stream_mode=["messages", "values"],

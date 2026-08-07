@@ -924,5 +924,191 @@
     "assistant": {
       "final_answer": "Có 2 đơn hàng đang chờ xử lý (pending)."
     }
+  },
+  {
+    "id": "20b0d7d6-aa2a-43d6-bc71-5b15296080b9",
+    "timestamp": "2026-08-06T10:10:03.735660",
+    "user": {
+      "input": "tôi là ai?"
+    },
+    "tool_calls": [],
+    "assistant": {
+      "final_answer": "Bạn là Sỹ."
+    }
+  },
+  {
+    "id": "e02fbdf5-5af8-4ebe-bd6f-a2e9a91d7394",
+    "timestamp": "2026-08-06T16:11:52.706143",
+    "user": {
+      "input": "có bao nhiêu đơn hàng đã thành công?"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_orders_by_status",
+        "arguments": {
+          "status": "completed"
+        },
+        "tool_call_id": "8bc1da3c-1aa7-41e8-937b-589ab99d5fd9"
+      }
+    ],
+    "assistant": {
+      "final_answer": ""
+    }
+  },
+  {
+    "id": "af24b315-befd-44ce-8090-2f4c27c886a9",
+    "timestamp": "2026-08-06T16:12:21.783172",
+    "user": {
+      "input": "có bao nhiêu đơn hàng đã thành công?"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_orders_by_status",
+        "arguments": {
+          "status": "completed"
+        },
+        "tool_call_id": "3172b550-14d6-44bf-ae2d-310a54717c48",
+        "result": "[{'order_id': 11, 'customer_id': 1, 'order_date': datetime.date(2024, 7, 22), 'status': 'completed', 'shipped_date': datetime.date(2024, 7, 24), 'order_total': Decimal('30000000.00')}, {'order_id': 10, 'customer_id': 8, 'order_date': datetime.date(2024, 7, 20), 'status': 'completed', 'shipped_date': datetime.date(2024, 7, 22), 'order_total': Decimal('1550000.00')}, {'order_id': 8, 'customer_id': 6, 'order_date': datetime.date(2024, 7, 15), 'status': 'completed', 'shipped_date': datetime.date(2024, 7, 17), 'order_total': Decimal('23100000.00')}, {'order_id': 7, 'customer_id': 5, 'order_date': datetime.date(2024, 7, 12), 'status': 'completed', 'shipped_date': datetime.date(2024, 7, 14), 'order_total': Decimal('9000000.00')}, {'order_id': 5, 'customer_id': 4, 'order_date': datetime.date(2024, 7, 5), 'status': 'completed', 'shipped_date': datetime.date(2024, 7, 7), 'order_total': Decimal('33200000.00')}, {'order_id': 2, 'customer_id': 1, 'order_date': datetime.date(2024, 7, 2), 'status': 'completed', 'shipped_date': datetime.date(2024, 7, 4), 'order_total': Decimal('2050000.00')}, {'order_id': 3, 'customer_id': 2, 'order_date': datetime.date(2024, 6, 15), 'status': 'completed', 'shipped_date': datetime.date(2024, 6, 17), 'order_total': Decimal('28000000.00')}, {'order_id': 1, 'customer_id': 1, 'order_date': datetime.date(2024, 6, 10), 'status': 'completed', 'shipped_date': datetime.date(2024, 6, 12), 'order_total': Decimal('26500000.00')}]"
+      }
+    ],
+    "assistant": {
+      "final_answer": "Có 8 đơn hàng đã thành công."
+    }
+  },
+  {
+    "id": "fa75e52e-2272-4f62-b1ab-77e3c20f32a3",
+    "timestamp": "2026-08-06T16:12:46.332920",
+    "user": {
+      "input": "có những đơn nào là laptop"
+    },
+    "tool_calls": [],
+    "assistant": {
+      "final_answer": "Tôi có thể tìm kiếm các sản phẩm là laptop. Bạn có muốn tôi"
+    }
+  },
+  {
+    "id": "1b8c783a-4580-4daf-93b9-7b32e0fa9413",
+    "timestamp": "2026-08-06T16:12:59.079837",
+    "user": {
+      "input": "có"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "search_products",
+        "arguments": {
+          "keyword": "laptop"
+        },
+        "tool_call_id": "c210dbed-d1e7-459d-928a-ae65676beb6f",
+        "result": []
+      }
+    ],
+    "assistant": {
+      "final_answer": "Tôi không tìm thấy sản phẩm nào có từ khóa \"laptop\" trong danh sách sản phẩm. Có thể sản phẩm này không có trong cơ sở dữ liệu hoặc được đặt tên khác."
+    }
+  },
+  {
+    "id": "15220e21-67eb-491a-9953-481b7cccb870",
+    "timestamp": "2026-08-06T16:13:06.936727",
+    "user": {
+      "input": "macbook ải"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "search_products",
+        "arguments": {
+          "keyword": "MacBook Air"
+        },
+        "tool_call_id": "82455983-4a9a-42e4-a1a3-e2e0d14af503",
+        "result": "[{'id': 4, 'name': 'MacBook Air M3', 'category': 'Laptop', 'price': Decimal('28000000.00')}]"
+      }
+    ],
+    "assistant": {
+      "final_answer": "Tôi tìm thấy sản phẩm \"MacBook Air M3\" trong danh mục Laptop với giá 28.000.000 VNĐ."
+    }
+  },
+  {
+    "id": "ac77165a-3559-4068-bafb-ce348e4a62ce",
+    "timestamp": "2026-08-06T16:51:37.775337",
+    "user": {
+      "input": "anh Nguyễn Văn An có mấy đơn?"
+    },
+    "tool_calls": [
+      {
+        "tool_name": "get_customer_by_name",
+        "arguments": {
+          "name": "Nguyễn Văn An"
+        },
+        "tool_call_id": "dca0f9bb-8595-4b70-b6a3-7ad0ba10aa5f"
+      }
+    ],
+    "assistant": {
+      "final_answer": ""
+    }
+  },
+  {
+    "id": "87c76f8e-340b-4c9f-9e4d-a1fa6780d484",
+    "timestamp": "2026-08-06T17:17:50.793588",
+    "user": {
+      "input": "exigt"
+    },
+    "tool_calls": [],
+    "assistant": {
+      "final_answer": "Xin lỗi, tôi không"
+    }
+  },
+  {
+    "id": "e8a11c13-6189-489a-b8e5-66ed2382bf6b",
+    "timestamp": "2026-08-06T17:22:13.384747",
+    "user": {
+      "input": "tool off"
+    },
+    "tool_calls": [],
+    "assistant": {
+      "final_answer": "Tôi có thể giúp gì cho bạn?"
+    }
+  },
+  {
+    "id": "ee3b3ab7-17a0-4083-a3cb-20bc23204547",
+    "timestamp": "2026-08-06T17:22:26.602031",
+    "user": {
+      "input": "tôi tên là gì"
+    },
+    "tool_calls": [],
+    "assistant": {
+      "final_answer": "Tôi không có thông tin về tên của bạn. Bạn có thể cho tôi biết tên của bạn không?"
+    }
+  },
+  {
+    "id": "8368649d-af3e-491c-98ae-ad14e224c70b",
+    "timestamp": "2026-08-06T17:22:36.114361",
+    "user": {
+      "input": "exir"
+    },
+    "tool_calls": [],
+    "assistant": {
+      "final_answer": "Tôi không hiểu yêu cầu của bạn. Bạn có thể nói rõ hơn không?"
+    }
+  },
+  {
+    "id": "3423a144-5907-45e0-b789-6e0025aeb68b",
+    "timestamp": "2026-08-06T17:22:54.314027",
+    "user": {
+      "input": "tôi tên là gì"
+    },
+    "tool_calls": [],
+    "assistant": {
+      "final_answer": "Tên bạn là Sỹ."
+    }
+  },
+  {
+    "id": "77df5d9d-1ed5-4ba3-bb16-aaa1fae43a6b",
+    "timestamp": "2026-08-06T17:23:09.465097",
+    "user": {
+      "input": "exir"
+    },
+    "tool_calls": [],
+    "assistant": {
+      "final_answer": "Xin lỗi, tôi không hiểu"
+    }
   }
 ]
