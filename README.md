@@ -194,7 +194,7 @@ Using different `thread_id` values creates independent conversations.
 
 ---
 
-## Streaming Output
+# Streaming Output
 
 The chatbot now streams the assistant response to the terminal token-by-token while the model is generating.
 
@@ -382,6 +382,24 @@ The chatbot now streams the assistant response to the terminal token-by-token wh
   },
 ```
 ---
+
+# Tool Switch
+The chatbot supports a runtime **Tool Switch** that enables or disables tool calling without modifying the graph.
+
+Commands:
+
+```text
+/tool on
+/tool off
+```
+
+When Tool Calling is disabled:
+
+- The workflow skips the `ToolNode`.
+- No database queries are executed.
+- The conversation continues using the LLM only.
+
+The switch is controlled through LangGraph's `configurable` runtime configuration.
 
 # Note 
 - Redis stores LangGraph conversation checkpoints.
