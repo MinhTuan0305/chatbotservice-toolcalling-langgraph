@@ -1,406 +1,545 @@
-# Shop Customer Service Chatbot with LangGraph
+# 🛍️ Shop Customer Service Chatbot
+
+AI-powered customer service chatbot built with LangGraph, featuring multi-turn conversations, tool calling, and full observability.
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue)
-![LangGraph](https://img.shields.io/badge/LangGraph-1.x-green)
+![LangGraph](https://img.shields.io/badge/LangGraph-1.2.9-green)
 ![Gemini](https://img.shields.io/badge/Google-Gemini-orange)
 ![Redis](https://img.shields.io/badge/Redis-Memory-red)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-blue)
-
-Using:
-
-- Python
-- LangGraph
-- Gemini API
-- Tool Calling
-- PostgreSQL
-- SQLAlchemy
+![Langfuse](https://img.shields.io/badge/Langfuse-Observability-purple)
 
 ---
 
-## Architecture
+## 📋 Overview
 
-```text
-                 User
-                   │
-                   ▼
-             Gemini (LLM)
-                   │
-                   ▼
-              LangGraph
-                   │
-        ┌──────────┴──────────┐
-        │                     │
-        ▼                     ▼
-   Tool Calling          Redis Checkpointer
-        │                     │
-        ▼                     │
-     ToolNode                 │
-        │                     │
-        ▼                     │
-   PostgreSQL Database        │
-        │                     │
-        └──────────┬──────────┘
-                   ▼
-             Final Response
+This chatbot helps customers query information about products, orders, and customers from a PostgreSQL database using natural language (Vietnamese). It uses LangGraph for workflow orchestration, Google Gemini as the LLM, and includes full observability through Langfuse.
+
+### Key Features
+
+- ✅ **Multi-turn Conversations** - Maintains context across messages
+- 🛠️ **Tool Calling** - Queries database to answer customer questions
+- 💾 **Persistent Memory** - Redis-based conversation state
+- 🔄 **Streaming Responses** - Real-time token-by-token output
+- 📊 **Full Observability** - Langfuse integration for tracing and analytics
+- 🌐 **Vietnamese Support** - Native Vietnamese language responses
+- ⚡ **Runtime Tool Toggle** - Enable/disable tools without restart
+
+---
+
+## 🏗️ Architecture
+
+### System Flow
+
+![System Flow](images/system_flow.png)
+
+The system follows a workflow where user input goes through the LLM, which can optionally call tools to query the database, and then generates a final response.
+
+### Component Flow
+
+![Component Flow](images/component_flow.png)
+
+**Architecture Layers:**
+
+1. **User Interface** - CLI-based conversation loop
+2. **LangGraph Orchestration** - State management and workflow routing
+3. **LLM Layer** - Google Gemini 2.5 Flash for natural language understanding
+4. **Tool Layer** - 6 specialized tools for database queries
+5. **Data Layer** - PostgreSQL for business data, Redis for conversation state
+6. **Observability** - Langfuse for tracing, metrics, and debugging
+
+---
+
+## 🛠️ Available Tools
+
+The chatbot can use these tools to answer customer queries:
+
+| Tool | Purpose | Example Query |
+|------|---------|---------------|
+| `search_products` | Find products by category and price | "Cho tôi laptop dưới 30 triệu" |
+| `get_customer_by_name` | Look up customer info | "Thông tin khách Nguyễn Văn An" |
+| `get_customer_orders` | Get customer's order history | "Các đơn hàng của khách An" |
+| `get_order_detail` | Get detailed order info | "Đơn #4 gồm những gì?" |
+| `get_revenue_by_category` | Calculate revenue by category | "Danh mục nào bán chạy nhất?" |
+| `get_top_customers` | Get top spending customers | "Top 5 khách hàng VIP" |
+
+---
+
+## 📁 Project Structure
+
+```
+shop-langgraph/
+├── app/
+│   ├── main.py                    # CLI entry point
+│   ├── config.py                  # Environment configuration
+│   │
+│   ├── graph/
+│   │   ├── workflow.py           # LangGraph workflow setup
+│   │   ├── nodes.py              # LLM and tool nodes
+│   │   ├── state.py              # Conversation state definition
+│   │   └── router.py             # Conditional routing logic
+│   │
+│   ├── tools/
+│   │   ├── customer_tools.py     # Customer-related queries
+│   │   ├── order_tools.py        # Order-related queries
+│   │   ├── product_tools.py      # Product search
+│   │   └── revenue_tools.py      # Revenue analytics
+│   │
+│   ├── db/
+│   │   ├── connection.py         # PostgreSQL connection
+│   │   └── redis.py              # Redis checkpointer
+│   │
+│   └── observability/
+│       └── langfuse_client.py    # Langfuse integration
+│
+├── docs/                          # Detailed documentation
+├── images/                        # Architecture diagrams
+├── docker-compose.langfuse.yml   # Langfuse observability stack
+├── requirements.txt              # Python dependencies
+└── .env                          # Environment variables
 ```
 
-
-# Project Structure
-
-```text
-app/
-├── db/
-│   └── redis.py
-├── graph/
-│   ├── nodes.py
-│   ├── state.py
-│   └── workflow.py
-├── tools/
-├── logging/
-├── config.py
-└── main.py
-```
 ---
 
-## Tools
+## 🚀 Quick Start
 
-1. search_products
-2. get_customer_by_name
-3. get_customer_orders
-4. get_order_detail
-5. get_revenue_by_category
-6. get_top_customers
+### Prerequisites
 
----
+- Python 3.10+
+- PostgreSQL database with shop data
+- Redis server
+- Google Gemini API key
+- (Optional) Docker for Langfuse
 
-# Test
-
-Several test cases are documented in:
-
-```text
-logs/transcripts.json
-```
-
----
-
-# Installation
-
-## 1. Clone the repository
+### 1. Clone Repository
 
 ```bash
 git clone <your-repository-url>
 cd shop-langgraph
 ```
 
----
-
-## 2. Create a virtual environment
+### 2. Create Virtual Environment
 
 ```bash
 python -m venv .venv
-```
 
----
-
-## 3. Activate the virtual environment
-
-### Windows
-
-```bash
+# Windows
 .venv\Scripts\activate
-```
 
-### Linux / macOS
-
-```bash
+# Linux/macOS
 source .venv/bin/activate
 ```
 
----
-
-## 4. Install dependencies
+### 3. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
+### 4. Configure Environment
 
-## 5. Configure environment variables
-
-Create a `.env` file in the project root.
-
-Example:
+Create a `.env` file in the project root:
 
 ```env
-GEMINI_API_KEY=your_gemini_api_key
+# LLM Configuration
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-2.5-flash
 
+# Database Configuration
 DATABASE_URL=postgresql://username:password@localhost:5432/shop_db
 
+# Redis Configuration
 REDIS_URL=redis://localhost:6379/0
+
+# Langfuse Observability (Optional)
+LANGFUSE_HOST=http://localhost:3000
+LANGFUSE_PUBLIC_KEY=pk-lf-your-public-key
+LANGFUSE_SECRET_KEY=sk-lf-your-secret-key
 ```
 
----
+### 5. Start Redis
 
-## 6. Start Redis
-
-The chatbot uses **Redis** as the LangGraph Checkpointer to persist conversation state.
-
-Run Redis using Docker:
+Using Docker:
 
 ```bash
-docker run -d \
-  --name redis \
-  -p 6379:6379 \
-  redis:8
+docker run -d --name redis -p 6379:6379 redis:8
 ```
 
-If the Redis container already exists:
+Or if container exists:
 
 ```bash
 docker start redis
 ```
 
----
+### 6. (Optional) Start Langfuse
 
-## 7. Run the chatbot
+For full observability with traces and dashboards:
 
 ```bash
-python -m app.main
+docker compose -f docker-compose.langfuse.yml up -d
+
+# Wait ~30 seconds for services to initialize
+# Open http://localhost:3000 to access Langfuse UI
+# Create a project and get API keys for .env
 ```
 
----
+### 7. Run Chatbot
 
-# Conversation Memory
-
-Conversation state is persisted using **LangGraph Redis Checkpointer**.
-
-Each conversation is identified by a unique `thread_id`.
-
-Example:
-
-```python
-graph.invoke(
-    {"messages": [user_message]},
-    config={
-        "configurable": {
-            "thread_id": THEAD_ID
-        }
-    }
-)
-```
-
-Using different `thread_id` values creates independent conversations.
-
----
-
-# Streaming Output
-
-The chatbot now streams the assistant response to the terminal token-by-token while the model is generating.
-
-- The final state is still saved after the run completes.
-- Transcript logging remains unchanged.
-- Streaming is shown only in the CLI output, not in Redis.
-
----
-
-## Transcript for 8 use cases:
 ```bash
-{
-    "id": "70a7d3e7-ea90-4273-9998-b9ad8f79f0a3",
-    "timestamp": "2026-07-28T13:45:51.814407",
-    "user": {
-      "input": "Cho tôi xem các sản phẩm laptop giá dưới 30 triệu."
-    },
-    "tool_calls": [
-      {
-        "tool_name": "search_products",
-        "arguments": {
-          "category": "laptop",
-          "max_price": 30000000
-        },
-        "tool_call_id": "35c8d519-5680-48e2-be27-4c995484f135",
-        "result": "[{'id': 4, 'name': 'MacBook Air M3', 'category': 'Laptop', 'price': Decimal('28000000.00')}, {'id': 6, 'name': 'Asus ZenBook', 'category': 'Laptop', 'price': Decimal('18000000.00')}]"
-      }
-    ],
-    "assistant": {
-      "final_answer": "Đây là các sản phẩm laptop có giá dưới 30 triệu:\n* MacBook Air M3, giá 28.000.000 VNĐ\n* Asus ZenBook, giá 18.000.000 VNĐ"
-    }
-  },
-  {
-    "id": "8982b84a-1459-41ad-aae3-e3c954d2be4d",
-    "timestamp": "2026-07-28T13:46:45.951034",
-    "user": {
-      "input": "Khách hàng Nguyễn Văn An có những đơn hàng nào?"
-    },
-    "tool_calls": [
-      {
-        "tool_name": "get_customer_by_name",
-        "arguments": {
-          "name": "Nguyễn Văn An"
-        },
-        "tool_call_id": "8f69f79e-02b9-47fd-b720-bae4c38c0a0b",
-        "result": "[{'id': 1, 'name': 'Nguyễn Văn An', 'city': 'Hà Nội', 'created_at': datetime.date(2024, 1, 15)}]"
-      },
-      {
-        "tool_name": "get_customer_orders",
-        "arguments": {
-          "customer_id": 1
-        },
-        "tool_call_id": "4f6bd3a0-601c-4b22-8255-c29b0a1de7d3",
-        "result": "[{'order_id': 11, 'customer_id': 1, 'order_date': datetime.date(2024, 7, 22), 'status': 'completed', 'shipped_date': datetime.date(2024, 7, 24), 'total_amount': Decimal('30000000.00')}, {'order_id': 2, 'customer_id': 1, 'order_date': datetime.date(2024, 7, 2), 'status': 'completed', 'shipped_date': datetime.date(2024, 7, 4), 'total_amount': Decimal('2050000.00')}, {'order_id': 1, 'customer_id': 1, 'order_date': datetime.date(2024, 6, 10), 'status': 'completed', 'shipped_date': datetime.date(2024, 6, 12), 'total_amount': Decimal('26500000.00')}]"
-      }
-    ],
-    "assistant": {
-      "final_answer": "Khách hàng Nguyễn Văn An có các đơn hàng sau:\n* Đơn hàng ID: 11, ngày đặt: 22/07/2024, trạng thái: đã hoàn thành, ngày giao: 24/07/2024, tổng tiền: 30.000.000 VNĐ\n* Đơn hàng ID: 2, ngày đặt: 02/07/2024, trạng thái: đã hoàn thành, ngày giao: 04/07/2024, tổng tiền: 2.050.000 VNĐ\n* Đơn hàng ID: 1, ngày đặt: 10/06/2024, trạng thái: đã hoàn thành, ngày giao: 12/06/2024, tổng tiền: 26.500.000 VNĐ"
-    }
-  },
-  {
-    "id": "a62e84f7-8013-4db7-8a8a-21ffa3de7616",
-    "timestamp": "2026-07-28T14:04:22.860072",
-    "user": {
-      "input": "Đơn hàng #4 gồm những sản phẩm gì, đã giao chưa?"
-    },
-    "tool_calls": [
-      {
-        "tool_name": "get_order_detail",
-        "arguments": {
-          "order_id": 4
-        },
-        "tool_call_id": "6d06968e-b742-432f-8241-6390112cad51",
-        "result": "[{'order_id': 4, 'customer_id': 3, 'order_date': datetime.date(2024, 6, 20), 'status': 'pending', 'shipped_date': None, 'order_item_id': 6, 'product_id': 3, 'product_name': 'Xiaomi 14', 'qty': 1, 'unit_price': Decimal('15000000.00'), 'item_total': Decimal('15000000.00')}, {'order_id': 4, 'customer_id': 3, 'order_date': datetime.date(2024, 6, 20), 'status': 'pending', 'shipped_date': None, 'order_item_id': 7, 'product_id': 11, 'product_name': 'Chuột không dây', 'qty': 1, 'unit_price': Decimal('350000.00'), 'item_total': Decimal('350000.00')}]"
-      }
-    ],
-    "assistant": {
-      "final_answer": "Đơn hàng #4 bao gồm các sản phẩm sau:\n- 1 sản phẩm Xiaomi 14 với giá 15,000,000.00 VNĐ\n- 1 sản phẩm Chuột không dây với giá 350,000.00 VNĐ\n\nĐơn hàng này hiện đang ở trạng thái \"pending\" và chưa được giao."
-    }
-  },
-  {
-    "id": "f7a4bb73-97a0-44b7-8c8a-84480a302bdf",
-    "timestamp": "2026-07-28T14:05:27.564317",
-    "user": {
-      "input": "Danh mục nào đang bán chạy nhất về doanh thu?"
-    },
-    "tool_calls": [
-      {
-        "tool_name": "get_revenue_by_category",
-        "arguments": {},
-        "tool_call_id": "bd6819a7-d419-49d4-98cb-affb06eaa6b1",
-        "result": "[{'category': 'Điện thoại', 'revenue': Decimal('74000000.00')}, {'category': 'Laptop', 'revenue': Decimal('60000000.00')}, {'category': 'Phụ kiện', 'revenue': Decimal('19400000.00')}]"
-      }
-    ],
-    "assistant": {
-      "final_answer": "Dựa trên doanh thu từ các đơn hàng đã hoàn thành, danh mục \"Điện thoại\" đang bán chạy nhất với doanh thu 74,000,000.00 VNĐ."
-    }
-  },
-  {
-    "id": "9b70742f-2872-4f70-a104-64d46bfddb57",
-    "timestamp": "2026-07-28T14:10:03.876810",
-    "user": {
-      "input": "Top 3 khách hàng chi tiêu nhiều nhất là ai?"
-    },
-    "tool_calls": [
-      {
-        "tool_name": "get_top_customers",
-        "arguments": {
-          "limit": 3
-        },
-        "tool_call_id": "acb630e3-8b99-447a-b196-9241630dad7e",
-        "result": "[{'customer_id': 1, 'name': 'Nguyễn Văn An', 'city': 'Hà Nội', 'total_spent': Decimal('58550000.00')}, {'customer_id': 4, 'name': 'Phạm Thị Dung', 'city': 'Hà Nội', 'total_spent': Decimal('33200000.00')}, {'customer_id': 2, 'name': 'Trần Thị Bình', 'city': 'Hồ Chí Minh', 'total_spent': Decimal('28000000.00')}]"
-      }
-    ],
-    "assistant": {
-      "final_answer": "Top 3 khách hàng chi tiêu nhiều nhất là:\n1. Nguyễn Văn An (ID: 1) từ Hà Nội, đã chi tiêu 58,550,000.00 VNĐ.\n2. Phạm Thị Dung (ID: 4) từ Hà Nội, đã chi tiêu 33,200,000.00 VNĐ.\n3. Trần Thị Bình (ID: 2) từ Hồ Chí Minh, đã chi tiêu 28,000,000.00 VNĐ."
-    }
-  },
-  {
-    "id": "f43d839b-4f43-4f59-b412-00c11c6d750f",
-    "timestamp": "2026-07-28T14:11:14.569348",
-    "user": {
-      "input": "Khách Trần Thị Bình đã mua tổng cộng bao nhiêu tiền, tính luôn cả đơn đã huỷ không?"
-    },
-    "tool_calls": [
-      {
-        "tool_name": "get_customer_by_name",
-        "arguments": {
-          "name": "Trần Thị Bình"
-        },
-        "tool_call_id": "78aacc0c-2e06-42b2-aa17-6dd8b6293516",
-        "result": "[{'id': 2, 'name': 'Trần Thị Bình', 'city': 'Hồ Chí Minh', 'created_at': datetime.date(2024, 2, 3)}]"
-      },
-      {
-        "tool_name": "get_customer_orders",
-        "arguments": {
-          "customer_id": 2
-        },
-        "tool_call_id": "52898444-5779-42d6-929d-246df3d687fc",
-        "result": "[{'order_id': 6, 'customer_id': 2, 'order_date': datetime.date(2024, 7, 10), 'status': 'cancelled', 'shipped_date': None, 'total_amount': Decimal('20000000.00')}, {'order_id': 3, 'customer_id': 2, 'order_date': datetime.date(2024, 6, 15), 'status': 'completed', 'shipped_date': datetime.date(2024, 6, 17), 'total_amount': Decimal('28000000.00')}]"
-      }
-    ],
-    "assistant": {
-      "final_answer": "Khách hàng Trần Thị Bình đã mua tổng cộng 48,000,000.00 VNĐ, bao gồm cả đơn hàng đã hủy. Cụ thể:\n*   Đơn hàng #6 (đã hủy): 20,000,000.00 VNĐ\n*   Đơn hàng #3 (đã hoàn thành): 28,000,000.00 VNĐ"
-    }
-  },
-  {
-    "id": "2e0573a2-6ab3-433c-901f-d8c8aaf5c7db",
-    "timestamp": "2026-07-28T14:12:08.457465",
-    "user": {
-      "input": "Khách hàng Lý Văn Không Tồn Tại có đơn hàng gì?"
-    },
-    "tool_calls": [
-      {
-        "tool_name": "get_customer_by_name",
-        "arguments": {
-          "name": "Lý Văn Không Tồn Tại"
-        },
-        "tool_call_id": "ad19a226-6d40-4a4f-b7a8-59ce969a9fd5",
-        "result": []
-      }
-    ],
-    "assistant": {
-      "final_answer": "Tôi không tìm thấy khách hàng nào có tên \"Lý Văn Không Tồn Tại\" trong hệ thống. Vui lòng kiểm tra lại tên khách hàng."
-    }
-  },
-  {
-    "id": "342b19d6-6673-4467-8bf8-784fa37f8ea1",
-    "timestamp": "2026-07-28T14:17:35.278500",
-    "user": {
-      "input": "Cho tôi mã giảm giá 50%."
-    },
-    "tool_calls": [],
-    "assistant": {
-      "final_answer": [
-        {
-          "type": "text",
-          "text": "Tôi xin lỗi, tôi không có chức năng tạo hoặc cung cấp mã giảm giá.",
-          "extras": {
-            "signature": "CtcCARFNMg8Lli0lRIqIeuez15GMrKZr6V29nJr91bbPI0Fv1X+JWyjpGrBL80kCAOl8b9N1GfgwqPDkclios5tN8Np9TqNfiDvyvKHJvR96UYKao2WOvvdIxokCo3Vls+wV7bnEmTrCmWayzg1GkY39FaevGZd6is1CaKZ4BSIkZyoYnixWnFrXxF+BKHKwZ2mo6rDjDg0ujrycOu20Z4oUtv8DmmZMLoRyyBlWyX7qfDsQtv/zOnrWiRnPlkEcyzV+p7TtP4a/iDe3leVIyEBKMZsSCPYHQEVhRcG0WzZe2VDzxNCfWRtb6svPld3xNph9yUE/V2MUqF+0iVsC0X4+Flyr9qYVlmCdtG4yK0ZkYX+q7K/wiFhU8Ptq/c68lsVJnXzPg299uMm4ciIQB9fXqtJs7YTHeB0OJVdnYCKKXJyMWMOPF7M29HdodNp0miAVJ/N+osRl0w=="
-          }
-        }
-      ]
-    }
-  },
+python app/main.py
 ```
+
 ---
 
-# Tool Switch
-The chatbot supports a runtime **Tool Switch** that enables or disables tool calling without modifying the graph.
+## 💬 Usage Examples
 
-Commands:
+### Starting a Conversation
 
-```text
-/tool on
-/tool off
+```
+Conversation ID: shop-001
+SHOP CUSTOMER SERVICE CHATBOT
+Nhập 'exit' để thoát.
+✅ Langfuse tracking enabled
+
+User: 
 ```
 
-When Tool Calling is disabled:
+### Example 1: Product Search
 
-- The workflow skips the `ToolNode`.
-- No database queries are executed.
-- The conversation continues using the LLM only.
+```
+User: Cho tôi xem các sản phẩm laptop giá dưới 30 triệu.
 
-The switch is controlled through LangGraph's `configurable` runtime configuration.
+Bot: Đây là các sản phẩm laptop có giá dưới 30 triệu:
+* MacBook Air M3, giá 28.000.000 VNĐ
+* Asus ZenBook, giá 18.000.000 VNĐ
+```
 
-# Note 
-- Redis stores LangGraph conversation checkpoints.
-- Conversation history is automatically restored based on the `thread_id`.
+**Tools used:** `search_products(category="laptop", max_price=30000000)`
+
+### Example 2: Customer Orders
+
+```
+User: Khách hàng Nguyễn Văn An có những đơn hàng nào?
+
+Bot: Khách hàng Nguyễn Văn An có các đơn hàng sau:
+* Đơn hàng ID: 11, ngày đặt: 22/07/2024, trạng thái: đã hoàn thành, 
+  ngày giao: 24/07/2024, tổng tiền: 30.000.000 VNĐ
+* Đơn hàng ID: 2, ngày đặt: 02/07/2024, trạng thái: đã hoàn thành, 
+  ngày giao: 04/07/2024, tổng tiền: 2.050.000 VNĐ
+```
+
+**Tools used:** `get_customer_by_name("Nguyễn Văn An")` → `get_customer_orders(customer_id=1)`
+
+### Example 3: Order Details
+
+```
+User: Đơn hàng #4 gồm những sản phẩm gì, đã giao chưa?
+
+Bot: Đơn hàng #4 bao gồm các sản phẩm sau:
+- 1 sản phẩm Xiaomi 14 với giá 15,000,000.00 VNĐ
+- 1 sản phẩm Chuột không dây với giá 350,000.00 VNĐ
+
+Đơn hàng này hiện đang ở trạng thái "pending" và chưa được giao.
+```
+
+**Tools used:** `get_order_detail(order_id=4)`
+
+### Example 4: Revenue Analytics
+
+```
+User: Danh mục nào đang bán chạy nhất về doanh thu?
+
+Bot: Dựa trên doanh thu từ các đơn hàng đã hoàn thành, 
+danh mục "Điện thoại" đang bán chạy nhất với doanh thu 74,000,000.00 VNĐ.
+```
+
+**Tools used:** `get_revenue_by_category()`
+
+### Example 5: Top Customers
+
+```
+User: Top 3 khách hàng chi tiêu nhiều nhất là ai?
+
+Bot: Top 3 khách hàng chi tiêu nhiều nhất là:
+1. Nguyễn Văn An (ID: 1) từ Hà Nội, đã chi tiêu 58,550,000.00 VNĐ.
+2. Phạm Thị Dung (ID: 4) từ Hà Nội, đã chi tiêu 33,200,000.00 VNĐ.
+3. Trần Thị Bình (ID: 2) từ Hồ Chí Minh, đã chi tiêu 28,000,000.00 VNĐ.
+```
+
+**Tools used:** `get_top_customers(limit=3)`
+
+### Example 6: Out-of-Scope Query
+
+```
+User: Cho tôi mã giảm giá 50%.
+
+Bot: Tôi xin lỗi, tôi không có chức năng tạo hoặc cung cấp mã giảm giá.
+```
+
+**Tools used:** None (LLM recognizes it's out of scope)
+
+---
+
+## ⚙️ Advanced Features
+
+### Runtime Tool Toggle
+
+Control tool calling during conversation without restarting:
+
+```
+User: /tool off
+Tool disabled.
+
+User: Cho tôi xem sản phẩm laptop
+Bot: Xin lỗi, tôi không thể truy vấn dữ liệu hiện tại vì chức năng công cụ (Tools) 
+đang tắt. Vui lòng bật công cụ (Tools toggle) để tôi có thể giúp bạn tra cứu 
+thông tin từ database.
+
+User: /tool on
+Tool enabled.
+
+User: Cho tôi xem sản phẩm laptop
+Bot: [Uses tools to query database]
+```
+
+### Multi-turn Conversations
+
+The chatbot maintains conversation context using Redis checkpointer:
+
+```
+User: Khách hàng Trần Thị Bình có bao nhiêu đơn hàng?
+Bot: Khách hàng Trần Thị Bình có 2 đơn hàng.
+
+User: Tính luôn cả đơn đã hủy không?
+Bot: Có, tính cả đơn đã hủy. Cụ thể:
+* Đơn hàng #6 (đã hủy): 20,000,000.00 VNĐ
+* Đơn hàng #3 (đã hoàn thành): 28,000,000.00 VNĐ
+```
+
+Each `thread_id` creates an independent conversation with its own memory.
+
+### Exit Conversation
+
+```
+User: exit
+Đã thoát chatbot.
+```
+
+---
+
+## 📊 Observability with Langfuse
+
+### What Gets Tracked
+
+When Langfuse is enabled, every conversation turn is logged as a **trace** with:
+
+- ✅ Full conversation context (user input + system prompts)
+- ✅ LLM generations (requests and responses)
+- ✅ Tool calls (name, arguments, results)
+- ✅ Latency per operation
+- ✅ Token usage (if provided by Gemini)
+- ✅ Session tracking (thread_id)
+
+### Accessing the Dashboard
+
+1. Open http://localhost:3000
+2. Navigate to **Traces** section
+3. Filter by:
+   - `session_id` (thread_id) - View specific conversations
+   - `metadata.tool_enabled` - See tool usage patterns
+   - Date range - Analyze trends over time
+
+### Dashboard Features
+
+- **Trace Timeline** - Visual timeline of each conversation turn
+- **Token Analytics** - Track token usage and costs
+- **Latency Metrics** - Performance monitoring
+- **Tool Usage Stats** - Most frequently called tools
+- **Error Tracking** - Failed tool calls or LLM errors
+
+For detailed dashboard setup, see `docs/PHASE8_DASHBOARD_SETUP.md`.
+
+---
+
+## 🔧 Configuration
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `GEMINI_API_KEY` | ✅ Yes | Google Gemini API key |
+| `GEMINI_MODEL` | No | Model name (default: gemini-2.5-flash) |
+| `DATABASE_URL` | ✅ Yes | PostgreSQL connection string |
+| `REDIS_URL` | ✅ Yes | Redis connection string |
+| `LANGFUSE_HOST` | No | Langfuse server URL (for observability) |
+| `LANGFUSE_PUBLIC_KEY` | No | Langfuse public key |
+| `LANGFUSE_SECRET_KEY` | No | Langfuse secret key |
+
+### Database Schema
+
+The chatbot expects these PostgreSQL tables:
+
+- `customers` - Customer information
+- `orders` - Order records
+- `order_items` - Order line items
+- `products` - Product catalog
+
+### Redis Usage
+
+Redis is used exclusively for LangGraph checkpointing:
+- Key pattern: `langgraph:checkpoint:{thread_id}:{checkpoint_ns}`
+- Stores conversation state (messages, metadata)
+- No expiration (persistent memory)
+
+---
+
+## 🧪 Testing
+
+### Manual Testing
+
+See `logs/transcripts.json` for 8 documented test cases covering:
+1. Product search by category and price
+2. Customer order lookup
+3. Order details with status
+4. Revenue analytics by category
+5. Top customer ranking
+6. Multi-criteria queries
+7. Non-existent entity handling
+8. Out-of-scope request handling
+
+### Running Tests
+
+```bash
+# Test with different thread IDs for isolated conversations
+python app/main.py
+# Enter thread_id: test-001
+
+python app/main.py
+# Enter thread_id: test-002
+```
+
+### Verifying Langfuse Integration
+
+```bash
+# Check Langfuse connection
+python scripts/verify_langfuse_connection.py
+
+# Expected output:
+# ✅ Connection successful!
+# Observation ID: ...
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### Issue: Chatbot doesn't start
+
+**Check Python version:**
+```bash
+python --version  # Should be 3.10+
+```
+
+**Verify dependencies:**
+```bash
+pip install -r requirements.txt
+```
+
+### Issue: Tool calls fail
+
+**Check database connection:**
+```bash
+# Test PostgreSQL connection
+psql $DATABASE_URL -c "SELECT 1;"
+```
+
+**Verify Redis:**
+```bash
+redis-cli ping  # Should return PONG
+```
+
+### Issue: Langfuse not tracking
+
+**Check Langfuse container:**
+```bash
+docker compose -f docker-compose.langfuse.yml ps
+# All services should be "Up"
+```
+
+**Verify credentials in .env:**
+```bash
+cat .env | grep LANGFUSE
+```
+
+**Test connection:**
+```bash
+python scripts/verify_langfuse_connection.py
+```
+
+### Issue: Out of memory errors
+
+**Increase Docker resources** (for Langfuse):
+- Minimum: 2GB RAM, 10GB disk
+- Recommended: 4GB RAM, 20GB disk
+
+---
+
+## 📚 Documentation
+
+- `docs/langfuse-integration-plan.md` - Langfuse architecture and implementation
+- `docs/PHASE8_DASHBOARD_SETUP.md` - Dashboard setup guide
+- `docs/QUICKSTART_LANGFUSE.md` - Langfuse quick start
+- `LANGFUSE_IMPLEMENTATION_CHECKLIST.md` - Complete implementation review
+- `GUI_REMOVED.md` - GUI removal notes (project is CLI-only)
+
+---
+
+## 🛣️ Roadmap
+
+### Current Version (2.0)
+- ✅ CLI-based chatbot
+- ✅ 6 database query tools
+- ✅ Redis-based memory
+- ✅ Langfuse observability
+- ✅ Vietnamese language support
+
+### Future Enhancements
+- 🔮 Web UI (FastAPI + React)
+- 🔮 User authentication
+- 🔮 Multi-language support
+- 🔮 Advanced analytics
+- 🔮 Custom tool creation
+- 🔮 RAG for product recommendations
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+---
+
+## 📄 License
+
+[Add your license here]
+
+---
+
+## 🙏 Acknowledgments
+
+Built with:
+- [LangGraph](https://github.com/langchain-ai/langgraph) - Workflow orchestration
+- [LangChain](https://github.com/langchain-ai/langchain) - LLM framework
+- [Google Gemini](https://ai.google.dev/) - Language model
+- [Langfuse](https://langfuse.com/) - Observability platform
+- [PostgreSQL](https://www.postgresql.org/) - Database
+- [Redis](https://redis.io/) - In-memory store
+
+---
+
+**Built with ❤️ using LangGraph and Langfuse**

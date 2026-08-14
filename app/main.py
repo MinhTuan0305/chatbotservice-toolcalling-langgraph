@@ -6,8 +6,10 @@ from app.graph.workflow import (
     build_graph,
 )
 
-from app.logging.trace_logger import (
-    save_transcript,
+from app.observability.langfuse_client import (
+    get_langfuse_handler,
+    is_langfuse_enabled,
+    flush_langfuse,
 )
 
 
@@ -18,6 +20,12 @@ def chat():
     THREAD_ID = input("Conversation ID: ")
     print("SHOP CUSTOMER SERVICE CHATBOT")
     print("Nhập 'exit' để thoát.")
+    
+    # Check Langfuse status
+    if is_langfuse_enabled():
+        print("✅ Langfuse tracking enabled")
+    else:
+        print("⚠️  Langfuse tracking disabled (credentials not configured)")
 
     tool_enabled = True
     while True:
@@ -42,11 +50,19 @@ def chat():
             print(
                 "Đã thoát chatbot."
             )
+            # Flush Langfuse events before exit
+            flush_langfuse()
             break
 
         user_message = HumanMessage(
             content=user_input
         )
+        
+        # Get Langfuse handler (if enabled)
+        langfuse_handler = get_langfuse_handler()
+        
+        # Build callbacks list
+        callbacks = [langfuse_handler] if langfuse_handler else []
 
         result = None
         streamed_output_started = False
@@ -59,7 +75,16 @@ def chat():
                  "configurable": {
                         "thread_id": THREAD_ID,
                         "tool_enabled": tool_enabled,
-                    }
+                    },
+                 "callbacks": callbacks,
+                 # Set trace attributes via metadata
+                 "metadata": {
+                     "langfuse_session_id": THREAD_ID,
+                     "langfuse_metadata": {
+                         "thread_id": THREAD_ID,
+                         "tool_enabled": str(tool_enabled),
+                     },
+                 },
             },
             stream_mode=["messages", "values"],
         ):
@@ -186,15 +211,6 @@ def chat():
                     tool_calls.append(
                         tool_call_record
                     )
-
-# lưu transcript
-        save_transcript(
-                    user_input=user_input,
-
-                    tool_calls=tool_calls,
-
-                    final_answer=final_answer,
-                )
 
         if streamed_output_started:
             print()

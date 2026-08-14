@@ -23,8 +23,23 @@ llm_with_tools = llm.bind_tools(
 )
 
 
-SYSTEM_PROMPT = """
-Bạn là chatbot chăm sóc khách hàng cho Shop.
+SYSTEM_PROMPT_NO_TOOLS = """Bạn là chatbot chăm sóc khách hàng cho Shop.
+
+Hiện tại bạn KHÔNG có quyền truy cập vào các công cụ (tools) để truy vấn database.
+
+NẾU người dùng hỏi về:
+- Thông tin khách hàng cụ thể
+- Đơn hàng  
+- Doanh thu
+- Sản phẩm
+
+HÃY trả lời rằng: "Xin lỗi, tôi không thể truy vấn dữ liệu hiện tại vì chức năng công cụ (Tools) đang tắt. Vui lòng bật công cụ (Tools toggle) để tôi có thể giúp bạn tra cứu thông tin từ database."
+
+Chỉ trả lời các câu hỏi chung chung hoặc hướng dẫn sử dụng.
+Trả lời bằng tiếng Việt.
+"""
+
+SYSTEM_PROMPT = """Bạn là chatbot chăm sóc khách hàng cho Shop.
 
 Bạn có quyền sử dụng các tool được cung cấp
 để truy vấn dữ liệu thật từ database.
@@ -63,56 +78,45 @@ NGUYÊN TẮC BẮT BUỘC:
 """
 
 
-def call_llm(state):
-
+def call_llm(state, config):
+    """LLM node that invokes the model (streaming handled by LangGraph)."""
     messages = state["messages"]
+    
+    # Check if tools are enabled from config
+    configurable = config.get("configurable", {})
+    tool_enabled = configurable.get("tool_enabled", True)
+    
+    # Use different system prompt based on tool_enabled
+    system_prompt = SYSTEM_PROMPT if tool_enabled else SYSTEM_PROMPT_NO_TOOLS
+    
+    # Use LLM with or without tools based on tool_enabled
+    llm_to_use = llm_with_tools if tool_enabled else llm
 
     prompt_messages = [
         {
             "role": "system",
-            "content": SYSTEM_PROMPT,
+            "content": system_prompt,
         },
         *messages,
     ]
 
-    streamed_response = None
+    # Get callbacks from config (Langfuse handler passed from main.py)
+    callbacks = config.get("callbacks", [])
+    
+    # Simply invoke - LangGraph handles streaming via stream_mode="messages"
+    # Pass callbacks to capture LLM call in Langfuse
+    response = llm_to_use.invoke(prompt_messages, config={"callbacks": callbacks})
 
-    for chunk in llm_with_tools.stream(
-        prompt_messages
-    ):
-        streamed_response = (
-            chunk
-            if streamed_response is None
-            else streamed_response + chunk
-        )
-
-    if streamed_response is None:
-        response = llm_with_tools.invoke(
-            prompt_messages
-        )
-    else:
-        response = AIMessage(
-            content=streamed_response.content,
-            additional_kwargs=
-                streamed_response.additional_kwargs,
-            response_metadata=
-                streamed_response.response_metadata,
-            tool_calls=streamed_response.tool_calls,
-            invalid_tool_calls=
-                streamed_response.invalid_tool_calls,
-        )
-
+    # Ensure response is AIMessage, not AIMessageChunk
     if isinstance(response, AIMessageChunk):
         response = AIMessage(
             content=response.content,
             additional_kwargs=response.additional_kwargs,
             response_metadata=response.response_metadata,
-            tool_calls=response.tool_calls,
-            invalid_tool_calls=response.invalid_tool_calls,
+            tool_calls=response.tool_calls if hasattr(response, 'tool_calls') else [],
+            invalid_tool_calls=response.invalid_tool_calls if hasattr(response, 'invalid_tool_calls') else [],
         )
 
     return {
-        "messages": [
-            response
-        ]
+        "messages": [response]
     }

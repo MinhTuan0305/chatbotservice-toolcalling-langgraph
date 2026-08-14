@@ -63,6 +63,7 @@ def save_transcript(
     user_input: str,
     tool_calls: list[dict],
     final_answer: str,
+    execution_metrics: dict | None = None,
 ):
     """
     Lưu một lần user hỏi chatbot.
@@ -90,6 +91,8 @@ def save_transcript(
         "assistant": {
             "final_answer": final_answer,
         },
+        
+        "execution_metrics": execution_metrics or {},  # Add metrics
     }
 
     transcripts.append(
