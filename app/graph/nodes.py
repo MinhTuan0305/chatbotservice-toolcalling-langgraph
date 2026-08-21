@@ -1,10 +1,11 @@
-from langchain_core.messages import AIMessage, AIMessageChunk
+from langchain_core.messages import AIMessage, AIMessageChunk, trim_messages
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from app.config import (
     GEMINI_API_KEY,
     GEMINI_MODEL,
+    MAX_CONTEXT_TOKENS,
 )
 
 from app.tools import ALL_TOOLS
@@ -91,13 +92,23 @@ def call_llm(state, config):
     
     # Use LLM with or without tools based on tool_enabled
     llm_to_use = llm_with_tools if tool_enabled else llm
+    
+    # Trim messages to prevent context window overflow
+    # Keep recent messages within token limit
+    trimmed_messages = trim_messages(
+        messages,
+        max_tokens=MAX_CONTEXT_TOKENS,
+        strategy="last",  # Keep most recent messages
+        token_counter=len,  # Simple character-based counting
+        allow_partial=False,
+    )
 
     prompt_messages = [
         {
             "role": "system",
             "content": system_prompt,
         },
-        *messages,
+        *trimmed_messages,
     ]
 
     # Get callbacks from config (Langfuse handler passed from main.py)
