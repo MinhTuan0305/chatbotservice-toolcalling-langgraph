@@ -20,33 +20,64 @@ This chatbot helps customers query information about products, orders, and custo
 - ✅ **Multi-turn Conversations** - Maintains context across messages
 - 🛠️ **Tool Calling** - Queries database to answer customer questions
 - 💾 **Persistent Memory** - Redis-based conversation state
-- 🔄 **Streaming Responses** - Real-time token-by-token output
+- 🔄 **Streaming Responses** - Real-time token-by-token output (CLI, WebSocket, and SSE)
 - 📊 **Full Observability** - Langfuse integration for tracing and analytics
 - 🌐 **Vietnamese Support** - Native Vietnamese language responses
 - ⚡ **Runtime Tool Toggle** - Enable/disable tools without restart
+- 🖥️ **CLI or Web** - Run as a local CLI, or as a Socket.IO + REST service for a browser/mobile client
+- 🔐 **JWT Authentication** - End-user clients authenticate before joining a conversation thread
+- 🌉 **Nginx-fronted, containerized** - `docker-compose.yml` runs the full stack (Nginx, Socket gateway, AI Agent service, Redis) behind a single entrypoint
 
 ---
 
 ## 🏗️ Architecture
 
-### System Flow
+### Agent Workflow
 
 ![System Flow](images/system_flow.png)
 
-The system follows a workflow where user input goes through the LLM, which can optionally call tools to query the database, and then generates a final response.
-
-### Component Flow
+Inside the agent, user input goes through the LLM, which can optionally call tools to query the database, and then generates a final response.
 
 ![Component Flow](images/component_flow.png)
 
-**Architecture Layers:**
+**Agent Layers:**
 
-1. **User Interface** - CLI-based conversation loop
-2. **LangGraph Orchestration** - State management and workflow routing
-3. **LLM Layer** - Google Gemini 2.5 Flash for natural language understanding
-4. **Tool Layer** - 6 specialized tools for database queries
-5. **Data Layer** - PostgreSQL for business data, Redis for conversation state
-6. **Observability** - Langfuse for tracing, metrics, and debugging
+1. **LangGraph Orchestration** - State management and workflow routing
+2. **LLM Layer** - Google Gemini 2.5 Flash for natural language understanding
+3. **Tool Layer** - 6 specialized tools for database queries
+4. **Data Layer** - PostgreSQL for business data, Redis for conversation state
+5. **Observability** - Langfuse for tracing, metrics, and debugging
+
+### Service Architecture (Web/Socket mode)
+
+The agent above is reused by two different front doors:
+
+- **`app/main.py`** - a CLI loop that talks to the agent directly, in-process. Good for local testing, no other services required.
+- **A 3-tier service stack**, for a real browser/mobile client:
+
+```
+Browser/mobile client
+        │  WebSocket (Socket.IO) + REST
+        ▼
+   Nginx (:80)                    ← single public entrypoint, TLS termination point
+        │  proxies /socket.io, /auth, /health, /stats, /metrics
+        ▼
+  socket_server.py (:5000)        ← real-time gateway (Flask-SocketIO)
+   - JWT auth on connect (POST /auth/token issues a demo token)
+   - enforces 1 user = 1 conversation thread
+   - holds NO LangGraph/LLM logic itself
+        │  HTTP (POST /chat) / SSE (POST /chat/stream), via app/ai_client.py
+        ▼
+  api_server.py (:8000)           ← AI Agent service (FastAPI), internal only
+   - owns the LangGraph agent, LLM, tools, checkpointer
+        │
+        ▼
+   Redis (checkpointer) + PostgreSQL (shop data)
+```
+
+Why split `socket_server` and `api_server`: the real-time/connection-handling concern (Socket.IO rooms, rate limiting, auth) is independent from the AI/agent concern (LangGraph, LLM, tools), so each can be reasoned about, scaled, and deployed separately. Streaming between them uses a single held-open SSE connection per request (`app/ai_client.py`), not a new HTTP call per token.
+
+See [`docker-compose.yml`](docker-compose.yml) to run the whole stack, or run `api_server.py`/`socket_server.py` directly for local development (see Quick Start below).
 
 ---
 
@@ -70,7 +101,12 @@ The chatbot can use these tools to answer customer queries:
 ```
 shop-langgraph/
 ├── app/
-│   ├── main.py                    # CLI entry point
+│   ├── main.py                    # CLI entry point (talks to the agent in-process)
+│   ├── service.py                 # ChatService — wraps the LangGraph agent (used by main.py and api_server.py)
+│   ├── api_server.py              # AI Agent service (FastAPI, :8000) — POST /chat, POST /chat/stream (SSE)
+│   ├── socket_server.py           # Real-time gateway (Flask-SocketIO, :5000) — JWT auth, rooms, rate limiting
+│   ├── ai_client.py               # HTTP client socket_server uses to call api_server
+│   ├── auth.py                    # JWT create/verify for end-user clients (see POST /auth/token)
 │   ├── config.py                  # Environment configuration
 │   │
 │   ├── graph/
@@ -87,14 +123,22 @@ shop-langgraph/
 │   │
 │   ├── db/
 │   │   ├── connection.py         # PostgreSQL connection
-│   │   └── redis.py              # Redis checkpointer
+│   │   └── redis.py              # Redis checkpointer (needs RediSearch — Redis 8+ or Redis Stack)
 │   │
 │   └── observability/
 │       └── langfuse_client.py    # Langfuse integration
 │
+├── client-examples/
+│   └── test.html                  # Minimal browser test client (login → JWT → Socket.IO chat)
+│
+├── nginx/
+│   └── nginx.conf                 # Reverse proxy config used by docker-compose.yml
+│
 ├── docs/                          # Detailed documentation
 ├── images/                        # Architecture diagrams
-├── docker-compose.langfuse.yml   # Langfuse observability stack
+├── Dockerfile                     # Shared image for api_server.py / socket_server.py
+├── docker-compose.yml             # Full stack: nginx + socket_server + api_server + redis
+├── docker-compose.langfuse.yml   # Langfuse observability stack (separate, optional)
 ├── requirements.txt              # Python dependencies
 └── .env                          # Environment variables
 ```
@@ -155,9 +199,18 @@ REDIS_URL=redis://localhost:6379/0
 LANGFUSE_HOST=http://localhost:3000
 LANGFUSE_PUBLIC_KEY=pk-lf-your-public-key
 LANGFUSE_SECRET_KEY=sk-lf-your-secret-key
+
+# Required only if you'll run socket_server.py (Web/Socket mode, see below)
+# Generate: python -c "import secrets; print(secrets.token_urlsafe(32))"
+JWT_SECRET_KEY=your-jwt-secret-here
+API_KEY=your-service-api-key-here
 ```
 
+See [`.env.example`](.env.example) for the full list, including Socket server / rate limiting / Nginx-related options.
+
 ### 5. Start Redis
+
+The LangGraph checkpointer needs the RediSearch module (`FT.*` commands) — plain `redis:7` does **not** have it. Use Redis 8+ (bundles it) or `redis/redis-stack-server` for older major versions.
 
 Using Docker:
 
@@ -183,11 +236,32 @@ docker compose -f docker-compose.langfuse.yml up -d
 # Create a project and get API keys for .env
 ```
 
-### 7. Run Chatbot
+### 7. Run the Chatbot
+
+**Option A — CLI** (simplest, no other services):
 
 ```bash
 python app/main.py
 ```
+
+**Option B — Web/Socket mode** (what a browser or mobile client talks to), directly on your host — needs two terminals:
+
+```bash
+python -m app.api_server
+```
+```bash
+python -m app.socket_server
+```
+
+Then open [`client-examples/test.html`](client-examples/test.html) in a browser, set Gateway URL to `http://localhost:5000`, log in with any user ID (issues a demo JWT via `POST /auth/token`), and chat.
+
+**Option C — Docker Compose** (same Web/Socket mode, containerized, fronted by Nginx on port 80):
+
+```bash
+docker compose up -d --build
+```
+
+Then open `client-examples/test.html` with Gateway URL set to `http://localhost` (port 80, through Nginx) instead of `:5000`. See [`docker-compose.yml`](docker-compose.yml) — this starts its own Redis (`redis/redis-stack-server`), separate from the one in step 5, so conversation threads are not shared between the two ways of running the project.
 
 ---
 
@@ -365,15 +439,34 @@ For detailed dashboard setup, see `docs/PHASE8_DASHBOARD_SETUP.md`.
 
 ### Environment Variables
 
+**Core agent (needed for CLI and Web/Socket mode):**
+
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `GEMINI_API_KEY` | ✅ Yes | Google Gemini API key |
 | `GEMINI_MODEL` | No | Model name (default: gemini-2.5-flash) |
 | `DATABASE_URL` | ✅ Yes | PostgreSQL connection string |
-| `REDIS_URL` | ✅ Yes | Redis connection string |
+| `REDIS_URL` | ✅ Yes | Redis connection string (needs RediSearch — Redis 8+ or Redis Stack) |
+| `MAX_CONTEXT_TOKENS` | No | Trims history to this many tokens (default: 4000) |
 | `LANGFUSE_HOST` | No | Langfuse server URL (for observability) |
 | `LANGFUSE_PUBLIC_KEY` | No | Langfuse public key |
 | `LANGFUSE_SECRET_KEY` | No | Langfuse secret key |
+
+**Web/Socket mode only** (`app/api_server.py` + `app/socket_server.py`):
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `API_KEY` | Recommended | Service-to-service secret: gates socket_server's `/health`/`/stats`/`/metrics` and socket_server → api_server calls. Unset = unprotected (dev only). |
+| `JWT_SECRET_KEY` | ✅ Yes | Signs end-user JWTs issued by `POST /auth/token`. Different secret than `API_KEY`. |
+| `JWT_EXPIRE_MINUTES` | No | Token lifetime (default: 60) |
+| `AI_SERVICE_URL` | No | Where socket_server reaches api_server (default: `http://127.0.0.1:8000`; set to `http://api_server:8000` in Docker) |
+| `SOCKET_HOST` / `SOCKET_PORT` | No | Bind address for socket_server (default `0.0.0.0:5000`) |
+| `API_HOST` / `API_PORT` | No | Bind address for api_server (default `0.0.0.0:8000`) |
+| `CORS_ORIGINS` | No | Allowed origins for Socket.IO/HTTP (default `*` — restrict in production) |
+| `RATE_LIMIT_ENABLED` / `RATE_LIMIT_DEFAULT` / `RATE_LIMIT_CHAT` | No | Per-IP rate limiting |
+| `TRUST_PROXY_HEADERS` | No | Set `true` only when behind exactly one trusted reverse proxy hop (e.g. the Nginx service in `docker-compose.yml`) — otherwise a client can spoof `X-Forwarded-For` to dodge rate limits |
+
+See [`.env.example`](.env.example) for the full list with defaults.
 
 ### Database Schema
 
@@ -486,26 +579,26 @@ python scripts/verify_langfuse_connection.py
 
 ## 📚 Documentation
 
+- `docs/WEB_GATEWAY_ARCHITECTURE.md` - What each Web/Socket piece (socket_server, api_server, JWT, Nginx, Docker) is and does
 - `docs/langfuse-integration-plan.md` - Langfuse architecture and implementation
-- `docs/PHASE8_DASHBOARD_SETUP.md` - Dashboard setup guide
 - `docs/QUICKSTART_LANGFUSE.md` - Langfuse quick start
-- `LANGFUSE_IMPLEMENTATION_CHECKLIST.md` - Complete implementation review
-- `GUI_REMOVED.md` - GUI removal notes (project is CLI-only)
 
 ---
 
 ## 🛣️ Roadmap
 
-### Current Version (2.0)
-- ✅ CLI-based chatbot
+### Current Version (3.0)
+- ✅ CLI chatbot (`app/main.py`)
+- ✅ Web/Socket mode: `socket_server.py` (Socket.IO gateway) + `api_server.py` (AI Agent REST/SSE service)
+- ✅ JWT authentication for end-user clients
+- ✅ Nginx reverse proxy + Docker Compose stack
 - ✅ 6 database query tools
 - ✅ Redis-based memory
 - ✅ Langfuse observability
 - ✅ Vietnamese language support
 
 ### Future Enhancements
-- 🔮 Web UI (FastAPI + React)
-- 🔮 User authentication
+- 🔮 Real user accounts (the current `POST /auth/token` is a demo issuer with no password check)
 - 🔮 Multi-language support
 - 🔮 Advanced analytics
 - 🔮 Custom tool creation

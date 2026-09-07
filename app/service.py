@@ -80,6 +80,7 @@ class ChatService:
                         },
                     },
                 },
+                stream_mode="values",
             ):
                 result = chunk
             

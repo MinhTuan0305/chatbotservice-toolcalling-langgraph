@@ -1,8 +1,11 @@
 """
 Socket Server for Shop Customer Service Chatbot
 
-Real-time Socket.IO server that enables web/mobile clients to communicate
-with the AI chatbot service. Supports streaming and non-streaming responses.
+Real-time Socket.IO gateway that enables web/mobile clients to communicate
+with the AI chatbot service. Holds no LangGraph/LLM logic itself — every
+chat request is forwarded over HTTP to the AI Agent API server
+(app/api_server.py, see app/ai_client.py) and the response/stream is
+re-emitted to the relevant Socket.IO room.
 
 Production features:
 - Rate limiting to prevent abuse
@@ -13,22 +16,37 @@ Production features:
 - Error monitoring
 """
 
-import logging
+# Must run before any other import: patches socket/threading/time so that
+# blocking calls (e.g. the `requests` calls in app/ai_client.py) cooperate
+# with eventlet's event loop instead of blocking every connected client.
+#
+# EVENTLET_NO_GREENDNS disables eventlet's own pure-Python DNS resolver in
+# favor of the OS resolver (via a thread). Eventlet's greendns has been
+# unreliable resolving both "localhost" (hangs on Windows) and Docker
+# Compose service names (hangs against Docker's embedded DNS) — both
+# observed hanging/timing out in this project. Must be set before eventlet
+# is imported.
 import os
+os.environ.setdefault("EVENTLET_NO_GREENDNS", "yes")
+import eventlet
+eventlet.monkey_patch()
+
+import logging
+import re
 from datetime import datetime, timedelta
 from typing import Dict, Any
 from functools import wraps
 from flask import Flask, request, jsonify
-from flask_socketio import SocketIO, emit, join_room, leave_room
+from flask_socketio import SocketIO, emit, join_room, leave_room, ConnectionRefusedError
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-from app.service import ChatService
+from app import ai_client, auth
 from app.config import (
     SOCKET_HOST, SOCKET_PORT, SOCKET_DEBUG, CORS_ORIGINS,
     RATE_LIMIT_ENABLED, RATE_LIMIT_DEFAULT, RATE_LIMIT_CHAT,
-    API_KEY, LOG_LEVEL, LOG_FILE
+    API_KEY, JWT_EXPIRE_MINUTES, LOG_LEVEL, LOG_FILE, TRUST_PROXY_HEADERS
 )
 from app.observability.langfuse_client import is_langfuse_enabled
 
@@ -54,6 +72,13 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 CORS(app, origins=CORS_ORIGINS)
 
+if TRUST_PROXY_HEADERS:
+    # Behind exactly one reverse proxy hop (Nginx) — trust its
+    # X-Forwarded-For/-Proto/-Host so request.remote_addr and url_for see
+    # the real client, not the proxy.
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
 # Initialize rate limiter
 limiter = Limiter(
     app=app,
@@ -71,12 +96,13 @@ socketio = SocketIO(
     engineio_logger=SOCKET_DEBUG
 )
 
-# Initialize AI service (single instance, thread-safe)
-chat_service = ChatService()
-
 # Thread state management (in-memory)
 # Format: {thread_id: {tool_enabled: bool, connected_clients: int, last_activity: datetime}}
 thread_states: Dict[str, Dict[str, Any]] = {}
+
+# Authenticated clients (in-memory). Format: {socket_id: user_id}
+# Populated on 'connect' after JWT verification, cleared on 'disconnect'.
+authenticated_users: Dict[str, str] = {}
 
 
 # ─────────────────────────────────────────────
@@ -126,19 +152,27 @@ def validate_input(data: dict, required_fields: list) -> tuple[bool, str]:
 def sanitize_thread_id(thread_id: str) -> str:
     """
     Sanitize thread ID to prevent injection attacks.
-    
+
     Allows: alphanumeric, dash, underscore
     Max length: 100 chars
     """
-    import re
-    
     # Remove invalid characters
     sanitized = re.sub(r'[^a-zA-Z0-9\-_]', '', thread_id)
-    
+
     # Limit length
     sanitized = sanitized[:100]
-    
+
     return sanitized
+
+
+def authorize_thread(client_id: str, thread_id: str) -> bool:
+    """
+    Each authenticated user owns exactly one conversation thread: their own
+    user_id. Prevents an authenticated client from reading/writing another
+    user's thread by guessing/typing its thread_id.
+    """
+    user_id = authenticated_users.get(client_id)
+    return user_id is not None and thread_id == user_id
 
 
 def get_thread_state(thread_id: str) -> Dict[str, Any]:
@@ -175,14 +209,32 @@ def cleanup_old_threads():
 # ─────────────────────────────────────────────
 
 @socketio.on('connect')
-def handle_connect():
-    """Handle client connection."""
+def handle_connect(auth_payload):
+    """
+    Handle client connection.
+
+    Requires a JWT in the Socket.IO connection handshake:
+        io("http://host:5000", { auth: { token: "<jwt>" } })
+
+    Get a token via POST /auth/token first. Connection is refused if the
+    token is missing, malformed, or expired.
+    """
     client_id = request.sid
-    logger.info(f"Client connected: {client_id}")
-    
+    token = (auth_payload or {}).get('token') if isinstance(auth_payload, dict) else None
+
+    try:
+        user_id = auth.verify_token(token)
+    except auth.TokenError as e:
+        logger.warning(f"Rejected connection from {client_id}: {e}")
+        raise ConnectionRefusedError(str(e))
+
+    authenticated_users[client_id] = user_id
+    logger.info(f"Client connected: {client_id} (user_id={user_id})")
+
     emit('connected', {
         'status': 'ok',
         'message': 'Connected to Shop Chatbot Server',
+        'user_id': user_id,
         'langfuse_enabled': is_langfuse_enabled()
     })
 
@@ -192,7 +244,9 @@ def handle_disconnect():
     """Handle client disconnection."""
     client_id = request.sid
     logger.info(f"Client disconnected: {client_id}")
-    
+
+    authenticated_users.pop(client_id, None)
+
     # Cleanup: decrease connected clients count
     # Note: We don't know which thread this client was in,
     # but it's okay - counts are approximate
@@ -216,11 +270,15 @@ def handle_join_thread(data):
             return
         
         thread_id = sanitize_thread_id(data['thread_id'])
-        
+
         if not thread_id:
             emit('error', {'error': 'Invalid thread_id format'})
             return
-        
+
+        if not authorize_thread(request.sid, thread_id):
+            emit('error', {'error': 'You can only join your own thread (thread_id must match your authenticated user_id)'})
+            return
+
         # Join Socket.IO room
         join_room(thread_id)
         
@@ -260,7 +318,11 @@ def handle_leave_thread(data):
             return
         
         thread_id = sanitize_thread_id(data['thread_id'])
-        
+
+        if not authorize_thread(request.sid, thread_id):
+            emit('error', {'error': 'You can only leave your own thread'})
+            return
+
         # Leave Socket.IO room
         leave_room(thread_id)
         
@@ -306,37 +368,40 @@ def handle_chat_message(data):
         message = data['message']
         thread_id = sanitize_thread_id(data['thread_id'])
         tool_enabled = data.get('tool_enabled')
-        
+
+        if not authorize_thread(request.sid, thread_id):
+            emit('error', {'error': 'You can only send messages to your own thread'})
+            return
+
         # Validate message length (max 5000 chars)
         if len(message) > 5000:
             emit('error', {'error': 'Message too long (max 5000 characters)'})
             return
-        
+
         # Get tool_enabled from thread state if not provided
         if tool_enabled is None:
             state = get_thread_state(thread_id)
             tool_enabled = state['tool_enabled']
         
         update_thread_activity(thread_id)
-        
+
         logger.info(f"Processing message for thread {thread_id} from {request.sid}: {message[:50]}...")
-        
-        # Process through service
-        response = chat_service.process_message(
-            user_input=message,
-            thread_id=thread_id,
-            tool_enabled=tool_enabled
-        )
-        
-        # Check for errors
-        if 'error' in response and response['error']:
-            logger.error(f"Service error for thread {thread_id}: {response['error']}")
+
+        # Forward to the AI Agent API server
+        try:
+            response = ai_client.chat(
+                message=message,
+                thread_id=thread_id,
+                tool_enabled=tool_enabled
+            )
+        except ai_client.AIServiceError as e:
+            logger.error(f"AI service error for thread {thread_id}: {e}")
             emit('error', {
-                'error': response['error'],
+                'error': str(e),
                 'thread_id': thread_id
             }, room=thread_id)
             return
-        
+
         # Send response to room
         emit('bot_response', {
             'final_answer': response['final_answer'],
@@ -378,25 +443,29 @@ def handle_chat_stream(data):
         message = data['message']
         thread_id = sanitize_thread_id(data['thread_id'])
         tool_enabled = data.get('tool_enabled')
-        
+
+        if not authorize_thread(request.sid, thread_id):
+            emit('error', {'error': 'You can only stream to your own thread'})
+            return
+
         # Validate message length
         if len(message) > 5000:
             emit('error', {'error': 'Message too long (max 5000 characters)'}, room=thread_id)
             return
-        
+
         # Get tool_enabled from thread state if not provided
         if tool_enabled is None:
             state = get_thread_state(thread_id)
             tool_enabled = state['tool_enabled']
         
         update_thread_activity(thread_id)
-        
+
         logger.info(f"Streaming message for thread {thread_id} from {request.sid}: {message[:50]}...")
-        
-        # Stream through service
+
+        # Stream from the AI Agent API server (single SSE connection, re-emitted chunk by chunk)
         chunk_count = 0
-        for event in chat_service.process_message_stream(
-            user_input=message,
+        for event in ai_client.chat_stream(
+            message=message,
             thread_id=thread_id,
             tool_enabled=tool_enabled
         ):
@@ -439,11 +508,15 @@ def handle_toggle_tools(data):
         
         thread_id = sanitize_thread_id(data['thread_id'])
         enabled = data.get('enabled')
-        
+
         if enabled is None:
             emit('error', {'error': 'enabled is required'})
             return
-        
+
+        if not authorize_thread(request.sid, thread_id):
+            emit('error', {'error': 'You can only toggle tools on your own thread'})
+            return
+
         # Update thread state
         state = get_thread_state(thread_id)
         state['tool_enabled'] = bool(enabled)
@@ -465,6 +538,40 @@ def handle_toggle_tools(data):
 # ─────────────────────────────────────────────
 # HTTP Routes
 # ─────────────────────────────────────────────
+
+@app.route('/auth/token', methods=['POST'])
+@limiter.limit("10 per minute")
+def issue_token():
+    """
+    DEMO token issuer.
+
+    Exchanges a client-supplied user_id for a signed JWT — there is no
+    password/credential check here, this only exists so the Socket.IO
+    'connect' handshake has a token to verify. A real deployment would
+    replace this with actual authentication against a user store.
+
+    Request body: {"user_id": "some-user"}
+    Response: {"token": "...", "user_id": "some-user", "expires_in_minutes": 60}
+    """
+    data = request.get_json(silent=True) or {}
+    user_id = (data.get('user_id') or '').strip()
+
+    if not user_id:
+        return jsonify({'error': 'user_id is required'}), 400
+
+    if not re.fullmatch(r'[a-zA-Z0-9\-_]{1,100}', user_id):
+        return jsonify({
+            'error': 'user_id must be 1-100 chars: letters, digits, dash, underscore only'
+        }), 400
+
+    token = auth.create_token(user_id)
+
+    return jsonify({
+        'token': token,
+        'user_id': user_id,
+        'expires_in_minutes': JWT_EXPIRE_MINUTES
+    })
+
 
 @app.route('/health')
 @limiter.limit("30 per minute")
@@ -566,6 +673,7 @@ def main():
         logger.info(f"  - Default: {RATE_LIMIT_DEFAULT}")
         logger.info(f"  - Chat: {RATE_LIMIT_CHAT}")
     logger.info(f"API Key Protection: {'Enabled' if API_KEY else 'Disabled (Dev Mode)'}")
+    logger.info(f"Trust Proxy Headers: {TRUST_PROXY_HEADERS}")
     logger.info(f"Log Level: {LOG_LEVEL}")
     logger.info(f"Log File: {LOG_FILE}")
     logger.info("=" * 60)

@@ -18,6 +18,12 @@ python-socketio==5.10.0
 flask-cors==4.0.0
 eventlet==0.33.3
 flask-limiter==3.5.0
+requests==2.34.2
+PyJWT==2.13.0
+
+# AI Agent API Server
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
 
 # Dev dependencies
 hypothesis==6.135.9

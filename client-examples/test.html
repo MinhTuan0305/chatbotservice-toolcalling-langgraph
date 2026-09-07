@@ -249,8 +249,14 @@
             </div>
         </div>
         
-        <div class="settings">
-            <input type="text" id="threadId" placeholder="Thread ID (e.g., shop-001)" value="test-001">
+        <div class="settings" id="loginSettings">
+            <input type="text" id="gatewayUrlInput" placeholder="Gateway URL" value="http://localhost:5000">
+            <input type="text" id="userIdInput" placeholder="User ID (e.g. alice)" value="demo-user">
+            <button id="loginBtn">Login</button>
+        </div>
+
+        <div class="settings" id="chatSettings" style="display: none;">
+            <input type="text" id="threadId" disabled>
             <button id="joinBtn">Join Thread</button>
             <label>
                 <input type="checkbox" id="toolEnabled" checked>
@@ -261,9 +267,9 @@
                 <span>Streaming</span>
             </label>
         </div>
-        
+
         <div class="chat-container" id="chatContainer"></div>
-        
+
         <div class="input-container">
             <input type="text" id="messageInput" placeholder="Nhập tin nhắn..." disabled>
             <button id="sendBtn" disabled>Send</button>
@@ -271,12 +277,23 @@
     </div>
 
     <script>
-        // Socket.IO connection
-        const socket = io('http://localhost:5000');
-        
+        // Base URL of the Socket gateway (also used for the /auth/token demo issuer).
+        // Set from the "Gateway URL" field at login — e.g. http://localhost:5000
+        // running socket_server directly, or http://localhost (port 80) through
+        // the Nginx entrypoint from docker-compose.yml.
+        let GATEWAY_URL = 'http://localhost:5000';
+
+        // Socket.IO connection — created only after we have a JWT (see login())
+        let socket = null;
+
         // DOM elements
         const statusDot = document.getElementById('statusDot');
         const statusText = document.getElementById('statusText');
+        const loginSettings = document.getElementById('loginSettings');
+        const chatSettings = document.getElementById('chatSettings');
+        const gatewayUrlInput = document.getElementById('gatewayUrlInput');
+        const userIdInput = document.getElementById('userIdInput');
+        const loginBtn = document.getElementById('loginBtn');
         const threadIdInput = document.getElementById('threadId');
         const joinBtn = document.getElementById('joinBtn');
         const toolEnabledCheckbox = document.getElementById('toolEnabled');
@@ -284,91 +301,151 @@
         const chatContainer = document.getElementById('chatContainer');
         const messageInput = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
-        
+
         // State
         let currentThreadId = null;
         let isJoined = false;
         let currentBotMessage = null;
-        
+
         // ─────────────────────────────────────────────
-        // Socket Event Listeners
+        // Login (demo token issuer) + Socket connection
         // ─────────────────────────────────────────────
-        
-        socket.on('connect', () => {
-            console.log('Connected to server');
-            statusDot.classList.remove('disconnected');
-            statusText.textContent = 'Connected';
-        });
-        
-        socket.on('disconnect', () => {
-            console.log('Disconnected from server');
-            statusDot.classList.add('disconnected');
-            statusText.textContent = 'Disconnected';
-            isJoined = false;
-            messageInput.disabled = true;
-            sendBtn.disabled = true;
-        });
-        
-        socket.on('connected', (data) => {
-            console.log('Server connected:', data);
-            addSystemMessage('Connected to server');
-        });
-        
-        socket.on('thread_joined', (data) => {
-            console.log('Joined thread:', data);
-            currentThreadId = data.thread_id;
-            isJoined = true;
-            messageInput.disabled = false;
-            sendBtn.disabled = false;
-            joinBtn.textContent = 'Leave Thread';
-            addSystemMessage(`Joined thread: ${data.thread_id}`);
-            
-            // Update tool checkbox
-            toolEnabledCheckbox.checked = data.tool_enabled;
-        });
-        
-        socket.on('thread_left', (data) => {
-            console.log('Left thread:', data);
-            currentThreadId = null;
-            isJoined = false;
-            messageInput.disabled = true;
-            sendBtn.disabled = true;
-            joinBtn.textContent = 'Join Thread';
-            addSystemMessage(`Left thread: ${data.thread_id}`);
-        });
-        
-        socket.on('bot_response', (data) => {
-            console.log('Bot response:', data);
-            addBotMessage(data.final_answer, data.tool_calls);
-        });
-        
-        socket.on('bot_chunk', (event) => {
-            if (event.type === 'chunk') {
-                if (!currentBotMessage) {
-                    currentBotMessage = addBotMessage('', []);
-                }
-                appendToBotMessage(currentBotMessage, event.data);
-            } else if (event.type === 'done') {
-                if (currentBotMessage && event.tool_calls && event.tool_calls.length > 0) {
-                    addToolCallsToMessage(currentBotMessage, event.tool_calls);
-                }
-                currentBotMessage = null;
-            } else if (event.type === 'error') {
-                addSystemMessage(`Error: ${event.error}`, 'error');
-                currentBotMessage = null;
+
+        async function login() {
+            const gatewayUrl = gatewayUrlInput.value.trim().replace(/\/$/, '');
+            const userId = userIdInput.value.trim();
+
+            if (!gatewayUrl) {
+                alert('Please enter the gateway URL');
+                return;
             }
+            if (!userId) {
+                alert('Please enter a user ID');
+                return;
+            }
+
+            GATEWAY_URL = gatewayUrl;
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Logging in...';
+
+            try {
+                const resp = await fetch(`${GATEWAY_URL}/auth/token`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId })
+                });
+                const data = await resp.json();
+
+                if (!resp.ok) {
+                    throw new Error(data.error || `HTTP ${resp.status}`);
+                }
+
+                // Each user owns exactly one thread: their own user_id
+                threadIdInput.value = data.user_id;
+                connectSocket(data.token);
+
+                loginSettings.style.display = 'none';
+                chatSettings.style.display = 'flex';
+            } catch (err) {
+                console.error('Login failed:', err);
+                alert(`Login failed: ${err.message}`);
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Login';
+            }
+        }
+
+        function connectSocket(token) {
+            socket = io(GATEWAY_URL, { auth: { token } });
+
+            socket.on('connect', () => {
+                console.log('Connected to server');
+                statusDot.classList.remove('disconnected');
+                statusText.textContent = 'Connected';
+            });
+
+            socket.on('connect_error', (err) => {
+                console.error('Connection rejected:', err.message);
+                addSystemMessage(`Connection rejected: ${err.message}`, 'error');
+                statusDot.classList.add('disconnected');
+                statusText.textContent = 'Rejected';
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Disconnected from server');
+                statusDot.classList.add('disconnected');
+                statusText.textContent = 'Disconnected';
+                isJoined = false;
+                messageInput.disabled = true;
+                sendBtn.disabled = true;
+            });
+
+            socket.on('connected', (data) => {
+                console.log('Server connected:', data);
+                addSystemMessage(`Connected to server as ${data.user_id}`);
+            });
+
+            socket.on('thread_joined', (data) => {
+                console.log('Joined thread:', data);
+                currentThreadId = data.thread_id;
+                isJoined = true;
+                messageInput.disabled = false;
+                sendBtn.disabled = false;
+                joinBtn.textContent = 'Leave Thread';
+                addSystemMessage(`Joined thread: ${data.thread_id}`);
+
+                // Update tool checkbox
+                toolEnabledCheckbox.checked = data.tool_enabled;
+            });
+
+            socket.on('thread_left', (data) => {
+                console.log('Left thread:', data);
+                currentThreadId = null;
+                isJoined = false;
+                messageInput.disabled = true;
+                sendBtn.disabled = true;
+                joinBtn.textContent = 'Join Thread';
+                addSystemMessage(`Left thread: ${data.thread_id}`);
+            });
+
+            socket.on('bot_response', (data) => {
+                console.log('Bot response:', data);
+                addBotMessage(data.final_answer, data.tool_calls);
+            });
+
+            socket.on('bot_chunk', (event) => {
+                if (event.type === 'chunk') {
+                    if (!currentBotMessage) {
+                        currentBotMessage = addBotMessage('', []);
+                    }
+                    appendToBotMessage(currentBotMessage, event.data);
+                } else if (event.type === 'done') {
+                    if (currentBotMessage && event.tool_calls && event.tool_calls.length > 0) {
+                        addToolCallsToMessage(currentBotMessage, event.tool_calls);
+                    }
+                    currentBotMessage = null;
+                } else if (event.type === 'error') {
+                    addSystemMessage(`Error: ${event.error}`, 'error');
+                    currentBotMessage = null;
+                }
+            });
+
+            socket.on('tools_toggled', (data) => {
+                console.log('Tools toggled:', data);
+                addSystemMessage(`Tools ${data.tool_enabled ? 'enabled' : 'disabled'}`);
+            });
+
+            socket.on('error', (data) => {
+                console.error('Server error:', data);
+                addSystemMessage(`Error: ${data.error}`, 'error');
+            });
+        }
+
+        loginBtn.addEventListener('click', login);
+        userIdInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') login();
         });
-        
-        socket.on('tools_toggled', (data) => {
-            console.log('Tools toggled:', data);
-            addSystemMessage(`Tools ${data.tool_enabled ? 'enabled' : 'disabled'}`);
-        });
-        
-        socket.on('error', (data) => {
-            console.error('Server error:', data);
-            addSystemMessage(`Error: ${data.error}`, 'error');
-        });
-        
+
         // ─────────────────────────────────────────────
         // UI Functions
         // ─────────────────────────────────────────────
