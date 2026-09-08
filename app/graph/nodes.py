@@ -1,27 +1,78 @@
+from functools import lru_cache
+
 from langchain_core.messages import AIMessage, AIMessageChunk, trim_messages
 
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 
 from app.config import (
     GEMINI_API_KEY,
     GEMINI_MODEL,
+    OPENAI_MODEL,
     MAX_CONTEXT_TOKENS,
 )
 
 from app.tools import ALL_TOOLS
 
 
-llm = ChatGoogleGenerativeAI(
-    model=GEMINI_MODEL,
-    google_api_key=GEMINI_API_KEY,
-    temperature=0,
-    streaming=True,
-)
+class ProviderConfigError(ValueError):
+    """Raised when the requested LLM provider/API key combination is invalid."""
 
 
-llm_with_tools = llm.bind_tools(
-    ALL_TOOLS
-)
+@lru_cache(maxsize=32)
+def _build_llm(provider: str, model: str, api_key: str, bind_tools: bool):
+    """
+    Build (and cache) a chat model for one (provider, model, api_key) combo.
+
+    Cached because api_key is user-suppliable per thread (see
+    app/socket_server.py `set_provider`) — without caching, every single
+    message would re-construct the provider's HTTP client from scratch.
+    """
+    if provider == "openai":
+        model_instance = ChatOpenAI(
+            model=model,
+            api_key=api_key,
+            temperature=0,
+            streaming=True,
+        )
+    else:
+        model_instance = ChatGoogleGenerativeAI(
+            model=model,
+            google_api_key=api_key,
+            temperature=0,
+            streaming=True,
+        )
+
+    if bind_tools:
+        model_instance = model_instance.bind_tools(ALL_TOOLS)
+
+    return model_instance
+
+
+def get_llm(provider: str | None, api_key: str | None, tool_enabled: bool):
+    """
+    Resolve the chat model to use for one request.
+
+    - "gemini" (default): uses the client-supplied api_key if given, else
+      falls back to the server's GEMINI_API_KEY from .env.
+    - "openai": always requires a client-supplied api_key — there is no
+      server-side default, by design (see app/config.py).
+    """
+    provider = (provider or "gemini").strip().lower()
+
+    if provider == "openai":
+        if not api_key:
+            raise ProviderConfigError(
+                "OpenAI yêu cầu API key riêng — vui lòng nhập API key trước khi chuyển sang OpenAI."
+            )
+        model = OPENAI_MODEL
+    elif provider == "gemini":
+        api_key = api_key or GEMINI_API_KEY
+        model = GEMINI_MODEL
+    else:
+        raise ProviderConfigError(f"Provider không được hỗ trợ: {provider}")
+
+    return _build_llm(provider, model, api_key, tool_enabled)
 
 
 SYSTEM_PROMPT_NO_TOOLS = """Bạn là chatbot chăm sóc khách hàng cho Shop.
@@ -82,17 +133,22 @@ NGUYÊN TẮC BẮT BUỘC:
 def call_llm(state, config):
     """LLM node that invokes the model (streaming handled by LangGraph)."""
     messages = state["messages"]
-    
+
     # Check if tools are enabled from config
     configurable = config.get("configurable", {})
     tool_enabled = configurable.get("tool_enabled", True)
-    
+    provider = configurable.get("provider")
+    api_key = configurable.get("api_key")
+
     # Use different system prompt based on tool_enabled
     system_prompt = SYSTEM_PROMPT if tool_enabled else SYSTEM_PROMPT_NO_TOOLS
-    
-    # Use LLM with or without tools based on tool_enabled
-    llm_to_use = llm_with_tools if tool_enabled else llm
-    
+
+    # Resolve LLM for the requested provider (defaults to Gemini + server key)
+    try:
+        llm_to_use = get_llm(provider, api_key, tool_enabled)
+    except ProviderConfigError as e:
+        return {"messages": [AIMessage(content=str(e))]}
+
     # Trim messages to prevent context window overflow
     # Keep recent messages within token limit
     trimmed_messages = trim_messages(

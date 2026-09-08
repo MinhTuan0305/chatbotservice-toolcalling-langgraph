@@ -268,6 +268,18 @@
             </label>
         </div>
 
+        <div class="settings" id="providerSettings" style="display: none;">
+            <label>
+                <span>Provider</span>
+            </label>
+            <select id="providerSelect">
+                <option value="gemini">Gemini (mặc định)</option>
+                <option value="openai">OpenAI</option>
+            </select>
+            <input type="password" id="openaiKeyInput" placeholder="OpenAI API Key" style="display: none;">
+            <button id="applyProviderBtn">Switch</button>
+        </div>
+
         <div class="chat-container" id="chatContainer"></div>
 
         <div class="input-container">
@@ -291,6 +303,7 @@
         const statusText = document.getElementById('statusText');
         const loginSettings = document.getElementById('loginSettings');
         const chatSettings = document.getElementById('chatSettings');
+        const providerSettings = document.getElementById('providerSettings');
         const gatewayUrlInput = document.getElementById('gatewayUrlInput');
         const userIdInput = document.getElementById('userIdInput');
         const loginBtn = document.getElementById('loginBtn');
@@ -298,6 +311,9 @@
         const joinBtn = document.getElementById('joinBtn');
         const toolEnabledCheckbox = document.getElementById('toolEnabled');
         const streamEnabledCheckbox = document.getElementById('streamEnabled');
+        const providerSelect = document.getElementById('providerSelect');
+        const openaiKeyInput = document.getElementById('openaiKeyInput');
+        const applyProviderBtn = document.getElementById('applyProviderBtn');
         const chatContainer = document.getElementById('chatContainer');
         const messageInput = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
@@ -346,6 +362,7 @@
 
                 loginSettings.style.display = 'none';
                 chatSettings.style.display = 'flex';
+                providerSettings.style.display = 'flex';
             } catch (err) {
                 console.error('Login failed:', err);
                 alert(`Login failed: ${err.message}`);
@@ -396,6 +413,12 @@
 
                 // Update tool checkbox
                 toolEnabledCheckbox.checked = data.tool_enabled;
+
+                // Sync provider selector with the thread's current setting
+                if (data.provider) {
+                    providerSelect.value = data.provider;
+                    openaiKeyInput.style.display = data.provider === 'openai' ? 'block' : 'none';
+                }
             });
 
             socket.on('thread_left', (data) => {
@@ -433,6 +456,14 @@
             socket.on('tools_toggled', (data) => {
                 console.log('Tools toggled:', data);
                 addSystemMessage(`Tools ${data.tool_enabled ? 'enabled' : 'disabled'}`);
+            });
+
+            socket.on('provider_updated', (data) => {
+                console.log('Provider updated:', data);
+                addSystemMessage(
+                    `Provider switched to ${data.provider}` +
+                    (data.provider === 'openai' ? ' (custom API key)' : ' (server key)')
+                );
             });
 
             socket.on('error', (data) => {
@@ -549,6 +580,33 @@
                     enabled: e.target.checked
                 });
             }
+        });
+
+        // Show the API key field only when OpenAI is selected — Gemini uses
+        // the server's own key by default and needs nothing typed in.
+        providerSelect.addEventListener('change', () => {
+            openaiKeyInput.style.display = providerSelect.value === 'openai' ? 'block' : 'none';
+        });
+
+        applyProviderBtn.addEventListener('click', () => {
+            if (!isJoined) {
+                alert('Join a thread first');
+                return;
+            }
+
+            const provider = providerSelect.value;
+            const apiKey = openaiKeyInput.value.trim();
+
+            if (provider === 'openai' && !apiKey) {
+                alert('OpenAI cần API key — vui lòng nhập trước khi chuyển.');
+                return;
+            }
+
+            socket.emit('set_provider', {
+                thread_id: currentThreadId,
+                provider: provider,
+                api_key: apiKey || undefined
+            });
         });
         
         function sendMessage() {

@@ -28,22 +28,27 @@ class ChatService:
         self,
         user_input: str,
         thread_id: str,
-        tool_enabled: bool = True
+        tool_enabled: bool = True,
+        provider: Optional[str] = None,
+        api_key: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Process a single message and return final response (non-streaming).
-        
+
         Args:
             user_input: User's message text
             thread_id: Conversation thread identifier
             tool_enabled: Whether to enable tool calls
-            
+            provider: LLM provider to use ("gemini" default, or "openai")
+            api_key: API key for the provider. Optional for "gemini" (falls
+                back to the server's GEMINI_API_KEY); required for "openai".
+
         Returns:
             Dict containing:
                 - final_answer (str): Bot's final response
                 - tool_calls (list): List of tool calls made (if any)
                 - error (str): Error message if processing failed
-                
+
         Raises:
             ValueError: If user_input is empty
         """
@@ -54,14 +59,14 @@ class ChatService:
                 "tool_calls": [],
                 "error": "Empty message not allowed"
             }
-        
+
         try:
             user_message = HumanMessage(content=user_input)
-            
+
             # Get Langfuse handler (if enabled)
             langfuse_handler = get_langfuse_handler()
             callbacks = [langfuse_handler] if langfuse_handler else []
-            
+
             # Process through graph
             result = None
             for chunk in self.graph.stream(
@@ -70,6 +75,8 @@ class ChatService:
                     "configurable": {
                         "thread_id": thread_id,
                         "tool_enabled": tool_enabled,
+                        "provider": provider,
+                        "api_key": api_key,
                     },
                     "callbacks": callbacks,
                     "metadata": {
@@ -77,6 +84,8 @@ class ChatService:
                         "langfuse_metadata": {
                             "thread_id": thread_id,
                             "tool_enabled": str(tool_enabled),
+                            # Never put api_key in metadata/traces.
+                            "provider": provider or "gemini",
                         },
                     },
                 },
@@ -113,16 +122,21 @@ class ChatService:
         self,
         user_input: str,
         thread_id: str,
-        tool_enabled: bool = True
+        tool_enabled: bool = True,
+        provider: Optional[str] = None,
+        api_key: Optional[str] = None,
     ) -> Generator[Dict[str, Any], None, None]:
         """
         Process a message and stream response chunks in real-time.
-        
+
         Args:
             user_input: User's message text
             thread_id: Conversation thread identifier
             tool_enabled: Whether to enable tool calls
-            
+            provider: LLM provider to use ("gemini" default, or "openai")
+            api_key: API key for the provider. Optional for "gemini" (falls
+                back to the server's GEMINI_API_KEY); required for "openai".
+
         Yields:
             Dict containing one of:
                 - {"type": "chunk", "data": str} - Text chunk
@@ -153,6 +167,8 @@ class ChatService:
                     "configurable": {
                         "thread_id": thread_id,
                         "tool_enabled": tool_enabled,
+                        "provider": provider,
+                        "api_key": api_key,
                     },
                     "callbacks": callbacks,
                     "metadata": {
@@ -160,6 +176,8 @@ class ChatService:
                         "langfuse_metadata": {
                             "thread_id": thread_id,
                             "tool_enabled": str(tool_enabled),
+                            # Never put api_key in metadata/traces.
+                            "provider": provider or "gemini",
                         },
                     },
                 },

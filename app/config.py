@@ -15,6 +15,14 @@ GEMINI_MODEL = os.getenv(
     "gemini-2.5-flash",
 )
 
+# OpenAI is an opt-in provider switched to at runtime (see app/graph/nodes.py)
+# with a client-supplied API key — there is no OPENAI_API_KEY default here on
+# purpose, only the model name to use once a key is provided.
+OPENAI_MODEL = os.getenv(
+    "OPENAI_MODEL",
+    "gpt-4o-mini",
+)
+
 DATABASE_URL = os.getenv(
     "DATABASE_URL"
 )

@@ -71,6 +71,8 @@ class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=MAX_MESSAGE_LENGTH)
     thread_id: str = Field(..., min_length=1, max_length=100)
     tool_enabled: Optional[bool] = None
+    provider: Optional[str] = None
+    api_key: Optional[str] = None
 
 
 class ChatResponse(BaseModel):
@@ -137,6 +139,8 @@ def chat(payload: ChatRequest, x_api_key: Optional[str] = Header(None)):
         user_input=payload.message,
         thread_id=thread_id,
         tool_enabled=tool_enabled,
+        provider=payload.provider,
+        api_key=payload.api_key,
     )
 
     if response.get("error"):
@@ -177,6 +181,8 @@ def chat_stream(payload: ChatRequest, x_api_key: Optional[str] = Header(None)):
                 user_input=payload.message,
                 thread_id=thread_id,
                 tool_enabled=tool_enabled,
+                provider=payload.provider,
+                api_key=payload.api_key,
             ):
                 if event.get("type") == "chunk":
                     chunk_count += 1

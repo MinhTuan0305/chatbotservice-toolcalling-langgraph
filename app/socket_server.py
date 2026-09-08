@@ -181,7 +181,12 @@ def get_thread_state(thread_id: str) -> Dict[str, Any]:
         thread_states[thread_id] = {
             'tool_enabled': True,
             'connected_clients': 0,
-            'last_activity': datetime.now()
+            'last_activity': datetime.now(),
+            # LLM provider for this thread. "gemini" (default) uses the
+            # server's own GEMINI_API_KEY; "openai" always requires the
+            # client-supplied api_key set via 'set_provider'.
+            'provider': 'gemini',
+            'api_key': None,
         }
     return thread_states[thread_id]
 
@@ -292,7 +297,8 @@ def handle_join_thread(data):
         emit('thread_joined', {
             'status': 'joined',
             'thread_id': thread_id,
-            'tool_enabled': state['tool_enabled']
+            'tool_enabled': state['tool_enabled'],
+            'provider': state['provider']
         })
         
     except Exception as e:
@@ -378,11 +384,11 @@ def handle_chat_message(data):
             emit('error', {'error': 'Message too long (max 5000 characters)'})
             return
 
-        # Get tool_enabled from thread state if not provided
+        # Get tool_enabled / provider from thread state if not provided
+        state = get_thread_state(thread_id)
         if tool_enabled is None:
-            state = get_thread_state(thread_id)
             tool_enabled = state['tool_enabled']
-        
+
         update_thread_activity(thread_id)
 
         logger.info(f"Processing message for thread {thread_id} from {request.sid}: {message[:50]}...")
@@ -392,7 +398,9 @@ def handle_chat_message(data):
             response = ai_client.chat(
                 message=message,
                 thread_id=thread_id,
-                tool_enabled=tool_enabled
+                tool_enabled=tool_enabled,
+                provider=state['provider'],
+                api_key=state['api_key'],
             )
         except ai_client.AIServiceError as e:
             logger.error(f"AI service error for thread {thread_id}: {e}")
@@ -453,11 +461,11 @@ def handle_chat_stream(data):
             emit('error', {'error': 'Message too long (max 5000 characters)'}, room=thread_id)
             return
 
-        # Get tool_enabled from thread state if not provided
+        # Get tool_enabled / provider from thread state if not provided
+        state = get_thread_state(thread_id)
         if tool_enabled is None:
-            state = get_thread_state(thread_id)
             tool_enabled = state['tool_enabled']
-        
+
         update_thread_activity(thread_id)
 
         logger.info(f"Streaming message for thread {thread_id} from {request.sid}: {message[:50]}...")
@@ -467,7 +475,9 @@ def handle_chat_stream(data):
         for event in ai_client.chat_stream(
             message=message,
             thread_id=thread_id,
-            tool_enabled=tool_enabled
+            tool_enabled=tool_enabled,
+            provider=state['provider'],
+            api_key=state['api_key'],
         ):
             # Emit each event to the room
             emit('bot_chunk', event, room=thread_id)
@@ -529,9 +539,68 @@ def handle_toggle_tools(data):
             'thread_id': thread_id,
             'tool_enabled': state['tool_enabled']
         }, room=thread_id)
-        
+
     except Exception as e:
         logger.error(f"Error in toggle_tools: {e}", exc_info=True)
+        emit('error', {'error': str(e)})
+
+
+@socketio.on('set_provider')
+def handle_set_provider(data):
+    """
+    Switch the LLM provider used for a thread.
+
+    Expected data:
+        {
+            "thread_id": "shop-001",
+            "provider": "gemini" | "openai",
+            "api_key": "sk-..."  (required when provider == "openai";
+                                   ignored for "gemini", which always uses
+                                   the server's own GEMINI_API_KEY)
+        }
+
+    Persisted in thread state (like tool_enabled) so subsequent
+    chat_message/chat_stream calls on this thread don't need to resend it.
+    """
+    try:
+        is_valid, error_msg = validate_input(data, ['thread_id', 'provider'])
+        if not is_valid:
+            emit('error', {'error': error_msg})
+            return
+
+        thread_id = sanitize_thread_id(data['thread_id'])
+        provider = (data.get('provider') or '').strip().lower()
+        api_key = (data.get('api_key') or '').strip() or None
+
+        if not authorize_thread(request.sid, thread_id):
+            emit('error', {'error': 'You can only change the provider on your own thread'})
+            return
+
+        if provider not in ('gemini', 'openai'):
+            emit('error', {'error': "provider must be 'gemini' or 'openai'"})
+            return
+
+        if provider == 'openai' and not api_key:
+            emit('error', {'error': 'OpenAI requires an api_key'})
+            return
+
+        state = get_thread_state(thread_id)
+        state['provider'] = provider
+        state['api_key'] = api_key
+        update_thread_activity(thread_id)
+
+        logger.info(f"Provider switched to '{provider}' for thread {thread_id} by {request.sid}")
+
+        # Never echo the api_key back, even to the same client.
+        emit('provider_updated', {
+            'status': 'ok',
+            'thread_id': thread_id,
+            'provider': provider,
+            'has_custom_api_key': api_key is not None,
+        }, room=thread_id)
+
+    except Exception as e:
+        logger.error(f"Error in set_provider: {e}", exc_info=True)
         emit('error', {'error': str(e)})
 
 

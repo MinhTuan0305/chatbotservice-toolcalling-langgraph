@@ -10,7 +10,7 @@ connection open to POST /chat/stream and re-emit each event as it arrives
 
 import json
 import logging
-from typing import Any, Dict, Generator
+from typing import Any, Dict, Generator, Optional
 
 import requests
 
@@ -52,12 +52,23 @@ def _extract_detail(resp: requests.Response) -> str:
         return resp.text or f"HTTP {resp.status_code}"
 
 
-def chat(message: str, thread_id: str, tool_enabled: bool) -> Dict[str, Any]:
+def chat(
+    message: str,
+    thread_id: str,
+    tool_enabled: bool,
+    provider: Optional[str] = None,
+    api_key: Optional[str] = None,
+) -> Dict[str, Any]:
     """Call POST /chat (non-streaming). Returns the parsed JSON response."""
+    payload = {"message": message, "thread_id": thread_id, "tool_enabled": tool_enabled}
+    if provider:
+        payload["provider"] = provider
+    if api_key:
+        payload["api_key"] = api_key
     try:
         resp = _session.post(
             f"{AI_SERVICE_URL}/chat",
-            json={"message": message, "thread_id": thread_id, "tool_enabled": tool_enabled},
+            json=payload,
             headers=_headers(),
             timeout=(_CONNECT_TIMEOUT, _READ_TIMEOUT),
         )
@@ -72,13 +83,22 @@ def chat(message: str, thread_id: str, tool_enabled: bool) -> Dict[str, Any]:
 
 
 def chat_stream(
-    message: str, thread_id: str, tool_enabled: bool
+    message: str,
+    thread_id: str,
+    tool_enabled: bool,
+    provider: Optional[str] = None,
+    api_key: Optional[str] = None,
 ) -> Generator[Dict[str, Any], None, None]:
     """Call POST /chat/stream (SSE) and yield each decoded event as it arrives."""
+    payload = {"message": message, "thread_id": thread_id, "tool_enabled": tool_enabled}
+    if provider:
+        payload["provider"] = provider
+    if api_key:
+        payload["api_key"] = api_key
     try:
         resp = _session.post(
             f"{AI_SERVICE_URL}/chat/stream",
-            json={"message": message, "thread_id": thread_id, "tool_enabled": tool_enabled},
+            json=payload,
             headers=_headers(),
             timeout=(_CONNECT_TIMEOUT, _STREAM_READ_TIMEOUT),
             stream=True,
