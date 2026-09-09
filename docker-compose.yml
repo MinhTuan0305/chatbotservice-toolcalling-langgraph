@@ -3,10 +3,11 @@
 # (LangGraph checkpointer).
 #
 # Secrets/config come from .env (GEMINI_API_KEY, DATABASE_URL, API_KEY,
-# JWT_SECRET_KEY, Langfuse keys, ...). REDIS_URL and AI_SERVICE_URL are
-# overridden below to the in-network service names — the values in .env
-# meant for running the services directly on your host (redis://localhost,
-# http://127.0.0.1:8000) don't resolve inside containers.
+# JWT_SECRET_KEY, Langfuse keys, ...). REDIS_URL, AI_SERVICE_URL and
+# LANGFUSE_HOST are overridden below to values that resolve from inside a
+# container — the values in .env meant for running the services directly on
+# your host (redis://localhost, http://127.0.0.1:8000, http://localhost:3000)
+# don't resolve inside containers.
 
 services:
   redis:
@@ -28,6 +29,13 @@ services:
     environment:
       API_HOST: 0.0.0.0
       REDIS_URL: redis://redis:6379/0
+      # Langfuse (docker-compose.langfuse.yml) publishes its web UI/API on
+      # the HOST at port 3000 — reach it via the host gateway rather than
+      # the langfuse-network (a separate Compose project's network), since
+      # only the port is guaranteed, not the network name.
+      LANGFUSE_HOST: http://host.docker.internal:3000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - redis
     volumes:
