@@ -49,9 +49,9 @@ def _build_llm(provider: str, model: str, api_key: str, bind_tools: bool):
     return model_instance
 
 
-def get_llm(provider: str | None, api_key: str | None, tool_enabled: bool):
+def _resolve_provider(provider: str | None, api_key: str | None) -> tuple[str, str, str]:
     """
-    Resolve the chat model to use for one request.
+    Normalize a requested (provider, api_key) into (provider, model, api_key).
 
     - "gemini" (default): uses the client-supplied api_key if given, else
       falls back to the server's GEMINI_API_KEY from .env.
@@ -65,14 +65,34 @@ def get_llm(provider: str | None, api_key: str | None, tool_enabled: bool):
             raise ProviderConfigError(
                 "OpenAI yêu cầu API key riêng — vui lòng nhập API key trước khi chuyển sang OpenAI."
             )
-        model = OPENAI_MODEL
+        return provider, OPENAI_MODEL, api_key
     elif provider == "gemini":
-        api_key = api_key or GEMINI_API_KEY
-        model = GEMINI_MODEL
+        return provider, GEMINI_MODEL, (api_key or GEMINI_API_KEY)
     else:
         raise ProviderConfigError(f"Provider không được hỗ trợ: {provider}")
 
-    return _build_llm(provider, model, api_key, tool_enabled)
+
+def get_llm(provider: str | None, api_key: str | None, tool_enabled: bool):
+    """Resolve the (possibly tool-bound) chat model to use for one request."""
+    provider, model, resolved_key = _resolve_provider(provider, api_key)
+    return _build_llm(provider, model, resolved_key, tool_enabled)
+
+
+def get_token_model(provider: str | None, api_key: str | None):
+    """
+    Resolve the bare chat model (no tools bound) to use as trim_messages'
+    token_counter — its get_num_tokens_from_messages() counts with that
+    provider's own tokenizer instead of a flat message/character count.
+
+    ChatOpenAI uses tiktoken locally (accurate for OpenAI's own billing).
+    ChatGoogleGenerativeAI's count depends on the installed langchain
+    version — some call Gemini's count_tokens API, older ones fall back to
+    LangChain's generic approximate tokenizer. Either way it is far closer
+    to reality than counting messages, but treat the Gemini number as an
+    estimate, not an exact billed count.
+    """
+    provider, model, resolved_key = _resolve_provider(provider, api_key)
+    return _build_llm(provider, model, resolved_key, False)
 
 
 SYSTEM_PROMPT_NO_TOOLS = """Bạn là chatbot chăm sóc khách hàng cho Shop.
@@ -146,16 +166,19 @@ def call_llm(state, config):
     # Resolve LLM for the requested provider (defaults to Gemini + server key)
     try:
         llm_to_use = get_llm(provider, api_key, tool_enabled)
+        token_model = get_token_model(provider, api_key)
     except ProviderConfigError as e:
         return {"messages": [AIMessage(content=str(e))]}
 
-    # Trim messages to prevent context window overflow
-    # Keep recent messages within token limit
+    # Trim messages to prevent context window overflow.
+    # token_counter=token_model makes trim_messages call the provider's own
+    # get_num_tokens_from_messages() — actual tokens, not a message count
+    # (see get_token_model's docstring for per-provider accuracy notes).
     trimmed_messages = trim_messages(
         messages,
         max_tokens=MAX_CONTEXT_TOKENS,
         strategy="last",  # Keep most recent messages
-        token_counter=len,  # Simple character-based counting
+        token_counter=token_model,
         allow_partial=False,
     )
 
@@ -169,10 +192,32 @@ def call_llm(state, config):
 
     # Get callbacks from config (Langfuse handler passed from main.py)
     callbacks = config.get("callbacks", [])
-    
+
+    # Langfuse's own "Usage" panel reports whatever the provider bills for
+    # the WHOLE call — system prompt + tool schemas + this context + any
+    # tool results from earlier in the same turn — so it will always read
+    # higher than "just the conversation memory". Log that slice explicitly
+    # as its own metadata field so it can be checked independently.
+    tokens_before_trim = token_model.get_num_tokens_from_messages(messages)
+    tokens_after_trim = token_model.get_num_tokens_from_messages(trimmed_messages)
+
     # Simply invoke - LangGraph handles streaming via stream_mode="messages"
     # Pass callbacks to capture LLM call in Langfuse
-    response = llm_to_use.invoke(prompt_messages, config={"callbacks": callbacks})
+    response = llm_to_use.invoke(
+        prompt_messages,
+        config={
+            "callbacks": callbacks,
+            "metadata": {
+                "langfuse_metadata": {
+                    "context_messages_before_trim": len(messages),
+                    "context_messages_after_trim": len(trimmed_messages),
+                    "context_tokens_before_trim": tokens_before_trim,
+                    "context_tokens_after_trim": tokens_after_trim,
+                    "max_context_tokens": MAX_CONTEXT_TOKENS,
+                },
+            },
+        },
+    )
 
     # Ensure response is AIMessage, not AIMessageChunk
     if isinstance(response, AIMessageChunk):
